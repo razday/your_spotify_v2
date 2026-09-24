@@ -1,6 +1,11 @@
 import { Types } from "mongoose";
 
-import { InfosModel, SpotifyAccountModel } from "../Models";
+import {
+  InfosModel,
+  LibraryItemModel,
+  SmartPlaylistModel,
+  SpotifyAccountModel,
+} from "../Models";
 import { SpotifyAccount } from "../schemas/spotifyAccount";
 
 const WITH_TOKENS = "+accessToken +refreshToken";
@@ -128,10 +133,25 @@ export async function ensurePrimaryAccount(owner: Types.ObjectId) {
 }
 
 // The history of the account is kept, it belongs to the user
-export const removeAccount = (id: Types.ObjectId) =>
+export async function removeAccount(id: Types.ObjectId) {
+  const account = await SpotifyAccountModel.findById(id).lean();
+  if (account) {
+    await LibraryItemModel.deleteMany({ account: account.spotifyId });
+    await SmartPlaylistModel.deleteMany({ account: id });
+  }
+  return removeAccountOnly(id);
+}
+
+const removeAccountOnly = (id: Types.ObjectId) =>
   SpotifyAccountModel.deleteOne({ _id: id });
 
-export const removeAccountsOfUser = (owner: Types.ObjectId) =>
+export async function removeAccountsOfUser(owner: Types.ObjectId) {
+  await LibraryItemModel.deleteMany({ owner });
+  await SmartPlaylistModel.deleteMany({ owner });
+  return removeAllAccountsOf(owner);
+}
+
+const removeAllAccountsOf = (owner: Types.ObjectId) =>
   SpotifyAccountModel.deleteMany({ owner });
 
 export const storeAccountSync = (

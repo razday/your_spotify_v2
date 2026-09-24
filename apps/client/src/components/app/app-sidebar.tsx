@@ -17,6 +17,8 @@ import {
   Telescope,
   Trophy,
   Users,
+  Heart,
+  ListMusic,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { useSelector } from "react-redux";
@@ -98,6 +100,22 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+const collectionGroup = (isPublic: boolean): NavGroup => ({
+  label: "nav.collection",
+  items: [
+    { title: "nav.library", url: "/library", icon: <Heart /> },
+    ...(isPublic
+      ? []
+      : [
+          {
+            title: "nav.playlists" as const,
+            url: "/playlists",
+            icon: <ListMusic />,
+          },
+        ]),
+  ],
+});
+
 const socialGroup: NavGroup = {
   label: "nav.social",
   items: [
@@ -127,8 +145,11 @@ export function AppSidebar() {
     }
   };
 
-  const groups =
-    affinityEnabled && !isPublic ? [...navGroups, socialGroup] : navGroups;
+  const groups = [
+    ...navGroups,
+    collectionGroup(isPublic),
+    ...(affinityEnabled && !isPublic ? [socialGroup] : []),
+  ];
 
   // Most recent sync of the linked Spotify accounts
   const lastSync = (user?.spotifyAccounts ?? [])

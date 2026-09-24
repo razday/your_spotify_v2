@@ -5,8 +5,10 @@ import { ArtistSchema } from "./schemas/artist";
 import { GlobalPreferencesSchema } from "./schemas/globalPreference";
 import { ImporterStateSchema } from "./schemas/import";
 import { InfosSchema } from "./schemas/info";
+import { LibraryItemSchema } from "./schemas/libraryItem";
 import { MigrationSchema } from "./schemas/migration";
 import { PrivateDataSchema } from "./schemas/privateData";
+import { SmartPlaylistSchema } from "./schemas/smartPlaylist";
 import { SpotifyAccountSchema } from "./schemas/spotifyAccount";
 import { TrackSchema } from "./schemas/track";
 import { UserSchema } from "./schemas/user";
@@ -23,6 +25,8 @@ export const GlobalPreferencesModel = model(
 );
 export const ImporterStateModel = model("ImporterState", ImporterStateSchema);
 export const PrivateDataModel = model("PrivateData", PrivateDataSchema);
+export const LibraryItemModel = model("LibraryItem", LibraryItemSchema);
+export const SmartPlaylistModel = model("SmartPlaylist", SmartPlaylistSchema);
 export const SpotifyAccountModel = model(
   "SpotifyAccount",
   SpotifyAccountSchema,

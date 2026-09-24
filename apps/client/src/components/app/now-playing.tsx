@@ -25,6 +25,7 @@ import { ReactNode, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
+import { LikeButton } from "@/components/stats/like-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -351,7 +352,12 @@ function PlayerPanel({
         </a>
       </div>
 
-      <ItemTitle item={item} onNavigate={onNavigate} />
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <ItemTitle item={item} onNavigate={onNavigate} />
+        </div>
+        {item.type === "track" && <LikeButton type="track" id={item.id} />}
+      </div>
 
       <div className="flex flex-col gap-1">
         <Slider

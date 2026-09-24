@@ -4,6 +4,8 @@ interface HttpClientRequestConfig {
   method: string;
   url: string;
   data?: any;
+  // Sent as is instead of JSON (images)
+  rawBody?: string;
   params?: Record<string, string>;
   headers?: Record<string, string>;
   priority?: RequestPriority;
@@ -231,9 +233,11 @@ export class QueuedHttpClient {
     const payload: RequestInit = {
       method: queueItem.config.method,
       headers: queueItem.config.headers,
-      body: queueItem.config.data
-        ? JSON.stringify(queueItem.config.data)
-        : undefined,
+      body:
+        queueItem.config.rawBody ??
+        (queueItem.config.data
+          ? JSON.stringify(queueItem.config.data)
+          : undefined),
       credentials: "include",
     };
 

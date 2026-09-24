@@ -25,6 +25,8 @@ export interface SpotifyAccount {
   lastSyncAt: Date | null;
   lastPlayAt: Date | null;
   linkedAt: Date;
+  // Last sync of the liked tracks and saved albums
+  librarySyncAt: Date | null;
 }
 
 export const SpotifyAccountSchema = new Schema<SpotifyAccount>({
@@ -53,4 +55,5 @@ export const SpotifyAccountSchema = new Schema<SpotifyAccount>({
   lastSyncAt: { type: Date, default: null },
   lastPlayAt: { type: Date, default: null },
   linkedAt: { type: Date, default: () => new Date() },
+  librarySyncAt: { type: Date, default: null },
 });

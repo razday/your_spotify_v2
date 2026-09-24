@@ -18,8 +18,11 @@ import DiscoveriesPage from "@/pages/discoveries";
 import FriendsPage from "@/pages/friends";
 import HabitsPage from "@/pages/habits";
 import HistoryPage from "@/pages/history";
+import LibraryPage from "@/pages/library";
 import { ApiEndpointErrorPage, NotFoundPage } from "@/pages/misc";
 import OverviewPage from "@/pages/overview";
+import PlaylistPage from "@/pages/playlist";
+import PlaylistsPage from "@/pages/playlists";
 import RecapPage from "@/pages/recap";
 import SessionsPage from "@/pages/sessions";
 import SettingsPage from "@/pages/settings";
@@ -62,6 +65,12 @@ export default function App() {
               <Route path="/taste" element={<TastePage />} />
               <Route path="/discoveries" element={<DiscoveriesPage />} />
               <Route path="/sessions" element={<SessionsPage />} />
+              <Route path="/library" element={<LibraryPage />} />
+              <Route path="/playlists" element={<PlaylistsPage />} />
+              <Route
+                path="/playlists/:accountId/:id"
+                element={<PlaylistPage />}
+              />
               <Route path="/artist/:id" element={<ArtistPage />} />
               <Route path="/album/:id" element={<AlbumPage />} />
               <Route path="/track/:id" element={<TrackPage />} />

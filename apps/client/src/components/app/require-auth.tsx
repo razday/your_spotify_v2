@@ -38,6 +38,8 @@ const NO_PERIOD = [
   "/track/",
   "/recap",
   "/achievements",
+  "/library",
+  "/playlists",
 ];
 
 export function FullPageLoader() {

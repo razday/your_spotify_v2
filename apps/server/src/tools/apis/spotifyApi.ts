@@ -26,15 +26,77 @@ export interface SpotifyMe {
 export interface SpotifyPlaylist {
   id: string;
   name: string;
-  owner: { id: string };
+  description?: string | null;
+  public?: boolean | null;
+  collaborative?: boolean;
+  images?: { url: string }[] | null;
+  items?: { total: number };
+  tracks?: { total: number };
+  owner: { id: string; display_name?: string | null };
   // Changes on every edit of the playlist
   snapshot_id: string;
 }
 
-// Track ids of the playlists, valid as long as their snapshot is the same
-const playlistTracks = new Map<
+interface SpotifyPage<T> {
+  items: T[];
+  next: string | null;
+  total: number;
+}
+
+interface RawPlaylistEntry {
+  added_at?: string | null;
+  is_local?: boolean;
+  item?: RawPlaylistItem | null;
+  track?: RawPlaylistItem | null;
+}
+
+interface RawPlaylistItem {
+  type?: string;
+  id: string | null;
+  uri: string;
+  name: string;
+  duration_ms?: number;
+  artists?: { id: string; name: string }[];
+  album?: {
+    id: string;
+    name: string;
+    release_date?: string;
+    images?: { url: string }[];
+  };
+  images?: { url: string }[];
+}
+
+export interface PlaylistEntry {
+  position: number;
+  uri: string;
+  id: string | null;
+  type: "track" | "episode";
+  name: string;
+  artists: { id: string; name: string }[];
+  album: { id: string; name: string; releaseDate: string | null } | null;
+  image: string | null;
+  durationMs: number;
+  addedAt: string | null;
+  isLocal: boolean;
+}
+
+export interface SpotifyPlaylistDetails {
+  id: string;
+  name: string;
+  description: string | null;
+  public: boolean | null;
+  collaborative: boolean;
+  snapshot_id: string;
+  owner: { id: string; display_name?: string | null };
+  images: { url: string; width: number | null; height: number | null }[] | null;
+  items?: { total: number };
+  tracks?: { total: number };
+}
+
+// Items of the playlists, valid as long as their snapshot is the same
+const playlistItemsCache = new Map<
   string,
-  { snapshot: string; ids: Set<string> }
+  { snapshot: string; items: PlaylistEntry[] }
 >();
 
 export interface SpotifyDevice {
@@ -301,41 +363,200 @@ export class SpotifyAPI {
     );
   }
 
-  public async playlistTrackIds(playlist: SpotifyPlaylist) {
-    const cached = playlistTracks.get(playlist.id);
+  // The items of a playlist, cached as long as its snapshot is the same
+  public async playlistItems(playlist: { id: string; snapshot_id: string }) {
+    const cached = playlistItemsCache.get(playlist.id);
     if (cached && cached.snapshot === playlist.snapshot_id) {
-      return cached.ids;
+      return cached.items;
     }
-    const ids = new Set<string>();
-    // "item" since February 2026, "track" before
-    let next: string | null = `/playlists/${playlist.id}/items?limit=100`;
+    const items: PlaylistEntry[] = [];
+    let next: string | null =
+      `/playlists/${playlist.id}/items?limit=50&additional_types=track,episode`;
     while (next) {
       const client = await this.checkToken();
-      const res: {
-        data: {
-          next: string | null;
-          items: {
-            item?: { id: string } | null;
-            track?: { id: string } | null;
-          }[];
-        } | null;
-      } = await client.get<{
-        next: string | null;
-        items: {
-          item?: { id: string } | null;
-          track?: { id: string } | null;
-        }[];
-      }>(next, INTERACTIVE);
+      const res: { data: SpotifyPage<RawPlaylistEntry> | null } =
+        await client.get<SpotifyPage<RawPlaylistEntry>>(next, INTERACTIVE);
       for (const entry of res.data?.items ?? []) {
-        const id = entry.item?.id ?? entry.track?.id;
-        if (id) {
-          ids.add(id);
+        // "item" since February 2026, "track" before
+        const item = entry.item ?? entry.track;
+        if (!item?.uri) {
+          continue;
         }
+        items.push({
+          position: items.length,
+          uri: item.uri,
+          id: item.id ?? null,
+          type: item.type === "episode" ? "episode" : "track",
+          name: item.name,
+          artists: (item.artists ?? []).map((a) => ({
+            id: a.id,
+            name: a.name,
+          })),
+          album: item.album
+            ? {
+                id: item.album.id,
+                name: item.album.name,
+                releaseDate: item.album.release_date ?? null,
+              }
+            : null,
+          image: item.album?.images?.[0]?.url ?? item.images?.[0]?.url ?? null,
+          durationMs: item.duration_ms ?? 0,
+          addedAt: entry.added_at ?? null,
+          isLocal: Boolean(entry.is_local),
+        });
       }
       next = res.data?.next ?? null;
     }
-    playlistTracks.set(playlist.id, { snapshot: playlist.snapshot_id, ids });
-    return ids;
+    playlistItemsCache.set(playlist.id, {
+      snapshot: playlist.snapshot_id,
+      items,
+    });
+    return items;
+  }
+
+  public async playlistTrackIds(playlist: { id: string; snapshot_id: string }) {
+    const items = await this.playlistItems(playlist);
+    return new Set(items.flatMap((item) => (item.id ? [item.id] : [])));
+  }
+
+  public async playlist(id: string) {
+    const client = await this.checkToken();
+    const res = await client.get<SpotifyPlaylistDetails>(
+      `/playlists/${id}`,
+      INTERACTIVE,
+    );
+    return res.data;
+  }
+
+  public async updatePlaylist(
+    id: string,
+    details: { name?: string; description?: string; public?: boolean },
+  ) {
+    const client = await this.checkToken();
+    await client.put(`/playlists/${id}`, { ...INTERACTIVE, data: details });
+  }
+
+  // Removes every occurrence of these items
+  public async removeFromPlaylist(id: string, uris: string[]) {
+    let snapshot: string | undefined;
+    for (const part of chunk(uris, 100)) {
+      const client = await this.checkToken();
+      const res = await client.delete<{ snapshot_id: string }>(
+        `/playlists/${id}/items`,
+        { ...INTERACTIVE, data: { items: part.map((uri) => ({ uri })) } },
+      );
+      snapshot = res.data?.snapshot_id ?? snapshot;
+    }
+    return snapshot;
+  }
+
+  public async insertInPlaylist(id: string, uris: string[], position?: number) {
+    let offset = position;
+    for (const part of chunk(uris, 100)) {
+      const client = await this.checkToken();
+      await client.post(`/playlists/${id}/items`, {
+        ...INTERACTIVE,
+        data:
+          offset === undefined
+            ? { uris: part }
+            : { uris: part, position: offset },
+      });
+      if (offset !== undefined) {
+        offset += part.length;
+      }
+    }
+  }
+
+  public async moveInPlaylist(
+    id: string,
+    from: number,
+    to: number,
+    snapshotId?: string,
+  ) {
+    const client = await this.checkToken();
+    // insert_before counts positions before the move
+    const insertBefore = to > from ? to + 1 : to;
+    await client.put(`/playlists/${id}/items`, {
+      ...INTERACTIVE,
+      data: {
+        range_start: from,
+        insert_before: insertBefore,
+        range_length: 1,
+        snapshot_id: snapshotId,
+      },
+    });
+  }
+
+  // Replaces the whole content of a playlist
+  public async replacePlaylist(id: string, uris: string[]) {
+    const [first = [], ...rest] = chunk(uris, 100);
+    const client = await this.checkToken();
+    await client.put(`/playlists/${id}/items`, {
+      ...INTERACTIVE,
+      data: { uris: first },
+    });
+    for (const part of rest) {
+      await this.insertInPlaylist(id, part);
+    }
+  }
+
+  public async createEmptyPlaylist(
+    name: string,
+    description: string,
+    isPublic: boolean,
+  ) {
+    const client = await this.checkToken();
+    const { data } = await client.post<{ id: string; snapshot_id: string }>(
+      "/me/playlists",
+      {
+        ...INTERACTIVE,
+        data: { name, description, public: isPublic, collaborative: false },
+      },
+    );
+    return data;
+  }
+
+  // A base64 JPEG, 256 KB at most
+  public async uploadPlaylistCover(id: string, base64Jpeg: string) {
+    const client = await this.checkToken();
+    await client.put(`/playlists/${id}/images`, {
+      ...INTERACTIVE,
+      rawBody: base64Jpeg,
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  }
+
+  // Liked tracks or saved albums, newest first. Stops after maxPages pages
+  public async savedItems(type: "track" | "album", maxPages = Infinity) {
+    const items: { added_at: string; item: any }[] = [];
+    let next: string | null = `/me/${type}s?limit=50`;
+    let total = 0;
+    let pages = 0;
+    while (next && pages < maxPages) {
+      const client = await this.checkToken();
+      const res: { data: SpotifyPage<any> | null } = await client.get(next);
+      total = res.data?.total ?? total;
+      for (const entry of res.data?.items ?? []) {
+        const item = entry[type];
+        if (item?.id) {
+          items.push({ added_at: entry.added_at, item });
+        }
+      }
+      next = res.data?.next ?? null;
+      pages += 1;
+    }
+    return { total, items };
+  }
+
+  // Save to or remove from the library, with URIs (40 per request)
+  public async setInLibrary(uris: string[], saved: boolean) {
+    for (const part of chunk(uris, 40)) {
+      const client = await this.checkToken();
+      const url = `/me/library?uris=${part.map(encodeURIComponent).join(",")}`;
+      await (saved
+        ? client.put(url, INTERACTIVE)
+        : client.delete(url, INTERACTIVE));
+    }
   }
 
   private async handleAddIdsToPlaylist(id: string, ids: string[]) {

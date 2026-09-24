@@ -13,9 +13,11 @@ import { router as authRouter } from "./routes/auth";
 import { router as globalRouter } from "./routes/global";
 import { router as importRouter } from "./routes/importer";
 import { router as insightsRouter } from "./routes/insights";
+import { router as libraryRouter } from "./routes/library";
 import { router as metricsRouter } from "./routes/metrics";
 import { router as oauthRouter } from "./routes/oauth";
 import { router as playerRouter } from "./routes/player";
+import { router as playlistsRouter } from "./routes/playlists";
 import { router as searchRouter } from "./routes/search";
 import { router as spotifyRouter } from "./routes/spotify";
 import { router as spotifyAccountsRouter } from "./routes/spotifyAccounts";
@@ -111,7 +113,8 @@ if (LogLevelAccepts("info")) {
 app.use(cookieParser());
 app.use("/static", express.static(path.join(import.meta.dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+// Playlist covers are sent as base64 images
+app.use(express.json({ limit: "1mb" }));
 
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
@@ -120,6 +123,8 @@ app.use("/spotify", spotifyRouter);
 app.use("/insights", insightsRouter);
 app.use("/spotify-accounts", spotifyAccountsRouter);
 app.use("/player", playerRouter);
+app.use("/library", libraryRouter);
+app.use("/playlists", playlistsRouter);
 app.use("/global", globalRouter);
 app.use("/artist", artistRouter);
 app.use("/album", albumRouter);

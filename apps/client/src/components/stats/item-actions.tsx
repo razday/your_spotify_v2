@@ -12,6 +12,7 @@ import {
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
+import { LikeMenuItem } from "@/components/stats/like-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -92,6 +93,7 @@ export function TrackActions({
               <ListEnd />
               {t("player.addToQueue")}
             </DropdownMenuItem>
+            <LikeMenuItem type="track" id={trackId} />
             <DropdownMenuItem
               onSelect={() =>
                 dispatch(
@@ -197,6 +199,7 @@ export function AlbumActions({ albumId }: { albumId: string }) {
     <DropdownMenu>
       <Trigger />
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+        <LikeMenuItem type="album" id={albumId} />
         <DropdownMenuItem asChild>
           <a
             href={spotifyUrl("album", albumId)}

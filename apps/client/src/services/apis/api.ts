@@ -37,6 +37,16 @@ import {
   TimelineItemType,
 } from "./insights";
 import {
+  LibrarySummary,
+  LibraryType,
+  LikedIds,
+  PlaylistDetails,
+  PlaylistSummary,
+  SmartPlaylistInfo,
+  SmartPlaylistKind,
+  SmartRefresh,
+} from "./library";
+import {
   AccountPlayer,
   PlayerCommand,
   PlayerDevice,
@@ -216,6 +226,48 @@ export const api = {
   play: (id: string, accountId?: string) =>
     axios.post("/spotify/play", { id, accountId }),
   players: () => get<AccountPlayer[]>("/player"),
+  likedIds: () => get<LikedIds>("/library/ids"),
+  librarySummary: () => get<LibrarySummary>("/library/summary"),
+  changeLibrary: (type: LibraryType, ids: string[], saved: boolean) =>
+    post<LikedIds>("/library/change", { type, ids, saved }),
+  likePlayed: (minPlays: number) =>
+    post<{ liked: number }>("/library/like-played", { minPlays }),
+  syncLibrary: () => post("/library/sync"),
+  playlists: () =>
+    get<{ playlists: PlaylistSummary[]; scopeMissing: boolean }>("/playlists"),
+  smartPlaylists: () => get<SmartPlaylistInfo[]>("/playlists/smart"),
+  createSmartPlaylist: (body: {
+    accountId: string;
+    kind: SmartPlaylistKind;
+    size: number;
+    refresh: SmartRefresh;
+    year: number | null;
+  }) => post<SmartPlaylistInfo & { count: number }>("/playlists/smart", body),
+  refreshSmartPlaylist: (id: string) =>
+    post<{ count: number }>(`/playlists/smart/${id}/refresh`),
+  updateSmartPlaylist: (id: string, body: { refresh?: SmartRefresh }) =>
+    axios.patch<SmartPlaylistInfo>(`/playlists/smart/${id}`, body),
+  deleteSmartPlaylist: (id: string) => axios.delete(`/playlists/smart/${id}`),
+  playlist: (accountId: string, id: string) =>
+    get<PlaylistDetails>(`/playlists/${accountId}/${id}`),
+  updatePlaylist: (
+    accountId: string,
+    id: string,
+    body: { name?: string; description?: string; public?: boolean },
+  ) => axios.patch(`/playlists/${accountId}/${id}`, body),
+  removeFromPlaylist: (accountId: string, id: string, uris: string[]) =>
+    post(`/playlists/${accountId}/${id}/remove`, { uris }),
+  moveInPlaylist: (
+    accountId: string,
+    id: string,
+    from: number,
+    to: number,
+    snapshotId: string,
+  ) => post(`/playlists/${accountId}/${id}/move`, { from, to, snapshotId }),
+  dedupePlaylist: (accountId: string, id: string) =>
+    post<{ removed: number }>(`/playlists/${accountId}/${id}/dedupe`),
+  uploadPlaylistCover: (accountId: string, id: string, image: string) =>
+    axios.put(`/playlists/${accountId}/${id}/cover`, { image }),
   playerCommand: (accountId: string, command: PlayerCommand) =>
     post(`/player/${accountId}/command`, command),
   playerDevices: (accountId: string) =>

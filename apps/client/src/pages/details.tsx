@@ -15,6 +15,7 @@ import { Cover } from "@/components/stats/cover";
 import { DetailHero, Pill } from "@/components/stats/detail-hero";
 import { ArtistActions, TrackActions } from "@/components/stats/item-actions";
 import { ItemInsights } from "@/components/stats/item-insights";
+import { LikeButton } from "@/components/stats/like-button";
 import { RankedRow } from "@/components/stats/ranked-row";
 import {
   EmptyState,
@@ -277,7 +278,12 @@ export function AlbumPage() {
           </span>
         }
         pills={<StatsPills type="album" id={id} />}
-        actions={<SpotifyButton type="album" id={id} />}
+        actions={
+          <>
+            <LikeButton type="album" id={id} size="default" />
+            <SpotifyButton type="album" id={id} />
+          </>
+        }
       />
       <FirstLast type="album" id={id} />
       <SectionCard
@@ -368,6 +374,7 @@ export function TrackPage() {
                 {tr("details.play")}
               </Button>
             )}
+            <LikeButton type="track" id={id} size="default" />
             <SpotifyButton type="track" id={id} />
           </>
         }

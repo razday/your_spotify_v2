@@ -50,11 +50,7 @@ import {
   initials,
 } from "@/lib/format";
 import { MessageKey, translate as t } from "@/lib/i18n";
-import {
-  accountName,
-  missesPlaylistScopes,
-  spotifyProfileUrl,
-} from "@/lib/spotify";
+import { accountName, spotifyProfileUrl } from "@/lib/spotify";
 import {
   changePassword,
   changeUsername,
@@ -432,7 +428,7 @@ export function SpotifyAccountsCard({ user }: { user: User }) {
                   </p>
                 )}
                 {account.status === "active" &&
-                  missesPlaylistScopes(account) && (
+                  account.missingScopes.length > 0 && (
                     <p className="text-xs text-chart-4">
                       {t("accounts.scopesHint")}
                     </p>

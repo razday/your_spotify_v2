@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 
 import { translate as t } from "@/lib/i18n";
 
+import { AppFooter } from "./app-footer";
 import { ThemeToggle } from "./theme-toggle";
 
 const BARS = [38, 62, 45, 80, 55, 92, 70, 48, 85, 60, 74, 40, 66, 88, 52];
@@ -24,6 +25,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm">{children}</div>
         </div>
+        <AppFooter />
       </div>
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-primary/90 via-chart-2/80 to-chart-3/80 lg:block">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.25),transparent_45%)]" />

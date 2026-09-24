@@ -589,7 +589,8 @@ export const en = {
     "Spotify revoked the access: its plays are not collected until you link it again, or stop tracking it.",
   "accounts.untrackedHint":
     "Not synced anymore. Its history and profile link are kept.",
-  "accounts.scopesHint": "Link it again to allow playlists.",
+  "accounts.scopesHint":
+    "Link it again to unlock the player and the new features.",
   "accounts.untrackTitle": "Stop tracking {name}?",
   "accounts.untrackText":
     "Its plays stop being collected and it will not be reported as expired anymore. Its history stays in your stats and you can link it again anytime.",
@@ -696,6 +697,34 @@ export const en = {
   "toast.socialOn": "Social features enabled",
   "toast.socialOff": "Social features disabled",
   "toast.serverUnreachable": "Cannot reach the server",
+  "player.open": "Now playing",
+  "player.nothing": "Nothing playing",
+  "player.nothingHint": "Play something on Spotify, it shows up here.",
+  "player.play": "Play",
+  "player.pause": "Pause",
+  "player.next": "Next",
+  "player.previous": "Previous",
+  "player.shuffle": "Shuffle",
+  "player.repeat": "Repeat",
+  "player.repeatOne": "Repeat the track",
+  "player.seek": "Position in the track",
+  "player.volume": "Volume",
+  "player.devices": "Devices",
+  "player.noDevices":
+    "No device available, open Spotify on one of your devices.",
+  "player.upNext": "Up next",
+  "player.queueEmpty": "The queue is empty",
+  "player.addToQueue": "Add to queue",
+  "player.queued": "Added to the queue",
+  "player.premium": "Controlling the playback needs Spotify Premium.",
+  "player.scope":
+    "Link your Spotify account again to see what is playing and control it.",
+  "player.rateLimited": "Spotify asks to wait a moment, try again shortly.",
+  "player.error": "Spotify did not answer, try again shortly.",
+  "header.scopesBanner":
+    "Link your Spotify account again to unlock the player and the new features.",
+  "footer.update": "Update available",
+  "footer.versions": "Server v{server}, web app v{client}",
 } as const;
 
 export type Messages = { [K in keyof typeof en]: string };

@@ -30,8 +30,11 @@ export const hasActiveAccount = (user: User | null | undefined) =>
 export const expiredAccounts = (user: User | null | undefined) =>
   accountsOf(user).filter((a) => a.status === "expired");
 
-export const missesPlaylistScopes = (account: SpotifyAccount | undefined) =>
-  Boolean(account?.missingScopes.some((s) => s.startsWith("playlist-")));
+// Active accounts linked before the last scopes were added
+export const scopesMissingAccounts = (user: User | null | undefined) =>
+  accountsOf(user).filter(
+    (a) => a.status === "active" && a.missingScopes.length > 0,
+  );
 
 export const accountName = (account: SpotifyAccount) =>
   account.displayName ?? account.spotifyId;

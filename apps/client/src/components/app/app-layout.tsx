@@ -1,4 +1,4 @@
-import { Eye, TriangleAlert } from "lucide-react";
+import { Eye, Sparkles, TriangleAlert } from "lucide-react";
 import { ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
@@ -11,13 +11,15 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { translatePlural, useT } from "@/lib/i18n";
-import { expiredAccounts } from "@/lib/spotify";
+import { expiredAccounts, scopesMissingAccounts } from "@/lib/spotify";
 import {
   selectIsPublic,
   selectUser,
 } from "@/services/redux/modules/user/selector";
 
+import { AppFooter } from "./app-footer";
 import { AppSidebar } from "./app-sidebar";
+import { NowPlaying } from "./now-playing";
 import { PeriodPicker } from "./period-picker";
 import { PlaylistDialog } from "./playlist-dialog";
 import { SearchCommand } from "./search-command";
@@ -35,6 +37,7 @@ export function AppLayout({ children, showPeriod = true }: AppLayoutProps) {
   const user = useSelector(selectUser);
   const { pathname } = useLocation();
   const expired = isPublic ? [] : expiredAccounts(user);
+  const missingScopes = isPublic ? [] : scopesMissingAccounts(user);
 
   return (
     <SidebarProvider>
@@ -56,6 +59,7 @@ export function AppLayout({ children, showPeriod = true }: AppLayoutProps) {
             </span>
           )}
           <div className="ml-auto flex items-center gap-2">
+            <NowPlaying />
             <SearchCommand />
             {showPeriod && <PeriodPicker />}
             <ThemeToggle />
@@ -72,9 +76,21 @@ export function AppLayout({ children, showPeriod = true }: AppLayoutProps) {
             </Button>
           </div>
         )}
+        {expired.length === 0 &&
+          missingScopes.length > 0 &&
+          !pathname.startsWith("/settings") && (
+            <div className="flex flex-wrap items-center gap-3 border-b bg-primary/8 px-4 py-2.5 text-sm md:px-6">
+              <Sparkles className="size-4 shrink-0 text-primary" />
+              <span className="flex-1">{t("header.scopesBanner")}</span>
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/settings/account">{t("accounts.relink")}</Link>
+              </Button>
+            </div>
+          )}
         <main className="flex flex-1 flex-col gap-6 p-4 md:p-6">
           {children}
         </main>
+        <AppFooter className="px-4 pb-5 md:px-6" />
       </SidebarInset>
       <PlaylistDialog />
     </SidebarProvider>

@@ -1,4 +1,5 @@
 import { translate } from "../../../../lib/i18n";
+import { refreshPlayers } from "../../../../lib/player";
 import { api } from "../../../apis/api";
 import { DateFormatter } from "../../../date";
 import { myAsyncThunk } from "../../tools";
@@ -181,6 +182,7 @@ export const playTrack = myAsyncThunk<void, string>(
   async (payload, tapi) => {
     try {
       await api.play(payload);
+      refreshPlayers();
       tapi.dispatch(
         alertMessage({ level: "success", message: translate("play.started") }),
       );

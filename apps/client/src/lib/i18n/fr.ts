@@ -575,7 +575,8 @@ export const fr: Messages = {
     "Spotify a révoqué l'accès : ses écoutes ne sont plus récupérées tant que tu ne le relies pas, ou que tu ne le suis plus.",
   "accounts.untrackedHint":
     "Plus synchronisé. Son historique et le lien vers son profil sont conservés.",
-  "accounts.scopesHint": "Relie-le à nouveau pour autoriser les playlists.",
+  "accounts.scopesHint":
+    "Relie-le pour débloquer le player et les nouvelles fonctionnalités.",
   "accounts.untrackTitle": "Ne plus suivre {name} ?",
   "accounts.untrackText":
     "Ses écoutes ne sont plus récupérées et il ne sera plus signalé comme expiré. Son historique reste dans tes stats et tu peux le relier à tout moment.",
@@ -683,4 +684,33 @@ export const fr: Messages = {
   "toast.socialOn": "Fonctions sociales activées",
   "toast.socialOff": "Fonctions sociales désactivées",
   "toast.serverUnreachable": "Impossible de joindre le serveur",
+  "player.open": "En cours de lecture",
+  "player.nothing": "Rien en cours",
+  "player.nothingHint": "Lance une musique sur Spotify, elle s'affiche ici.",
+  "player.play": "Lecture",
+  "player.pause": "Pause",
+  "player.next": "Suivant",
+  "player.previous": "Précédent",
+  "player.shuffle": "Aléatoire",
+  "player.repeat": "Répéter",
+  "player.repeatOne": "Répéter le titre",
+  "player.seek": "Position dans le titre",
+  "player.volume": "Volume",
+  "player.devices": "Appareils",
+  "player.noDevices":
+    "Aucun appareil disponible, ouvre Spotify sur un de tes appareils.",
+  "player.upNext": "À suivre",
+  "player.queueEmpty": "La file d'attente est vide",
+  "player.addToQueue": "Ajouter à la file d'attente",
+  "player.queued": "Ajouté à la file d'attente",
+  "player.premium": "Contrôler la lecture nécessite Spotify Premium.",
+  "player.scope":
+    "Relie ton compte Spotify pour voir ce qui joue et le contrôler.",
+  "player.rateLimited":
+    "Spotify demande de patienter un instant, réessaie bientôt.",
+  "player.error": "Spotify n'a pas répondu, réessaie bientôt.",
+  "header.scopesBanner":
+    "Relie ton compte Spotify pour débloquer le player et les nouvelles fonctionnalités.",
+  "footer.update": "Mise à jour disponible",
+  "footer.versions": "Serveur v{server}, application web v{client}",
 };

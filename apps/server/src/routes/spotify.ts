@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Types } from "mongoose";
 import { z } from "zod";
 
 import {
@@ -26,6 +27,8 @@ import {
   getCollaborativeBestArtists,
   getCollaborativeBestSongs,
 } from "../database/queries/collaborative";
+import { getAccountById } from "../database/queries/spotifyAccount";
+import { SpotifyAPI } from "../tools/apis/spotifyApi";
 import { DateFormatter, intervalToDisplay } from "../tools/date";
 import {
   affinityAllowed,
@@ -35,25 +38,56 @@ import {
   withHttpClient,
 } from "../tools/middleware";
 import { uniq } from "../tools/misc";
+import { invalidatePlayer, playbackTarget } from "../tools/player";
 import { SpotifyRequest, LoggedRequest, Timesplit } from "../tools/types";
 import { toDate, toNumber } from "../tools/zod";
 
 export const router = Router();
 
-const playSchema = z.object({ id: z.string() });
+const playSchema = z.object({
+  id: z.string(),
+  accountId: z.string().optional(),
+});
 
 router.post("/play", logged, withHttpClient, async (req, res) => {
-  const { client } = req as SpotifyRequest;
-  const { id } = validate(req.body, playSchema);
+  const { user } = req as LoggedRequest;
+  const { id, accountId } = validate(req.body, playSchema);
 
   const track = await getTrackBySpotifyId(id);
   if (!track) {
     res.status(400).end();
     return;
   }
+  // The account playing right now (or the one asked), on its current device
+  let target = await playbackTarget(user._id);
+  if (accountId && target?.accountId !== accountId) {
+    const account = Types.ObjectId.isValid(accountId)
+      ? await getAccountById(new Types.ObjectId(accountId))
+      : null;
+    if (
+      !account ||
+      account.status !== "active" ||
+      account.owner.toString() !== user._id.toString()
+    ) {
+      res.status(404).end();
+      return;
+    }
+    target = { accountId, deviceId: undefined };
+  }
+  if (!target) {
+    res.status(409).send({ code: "SPOTIFY_NOT_LINKED" });
+    return;
+  }
   // Spotify errors (no active device, premium required...) are translated
   // by the error handler of the app
-  await client.playTrack(track.uri);
+  try {
+    await SpotifyAPI.forAccount(target.accountId).playTrack(track.uri, {
+      albumUri: track.album ? `spotify:album:${track.album}` : undefined,
+      deviceId: target.deviceId,
+    });
+  } finally {
+    invalidatePlayer(target.accountId);
+  }
   res.status(204).end();
 });
 

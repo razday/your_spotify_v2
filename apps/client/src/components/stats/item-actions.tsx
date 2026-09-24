@@ -2,6 +2,7 @@ import {
   Ban,
   Disc3,
   ExternalLink,
+  ListEnd,
   ListPlus,
   MicVocal,
   MoreHorizontal,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { translate as t } from "@/lib/i18n";
 import { usePeriodSearch } from "@/lib/period";
+import { addToQueue } from "@/lib/player";
 import { canUseSpotify } from "@/lib/spotify";
 import { setPlaylistContext } from "@/services/redux/modules/playlist/reducer";
 import {
@@ -84,6 +86,11 @@ export function TrackActions({
               onSelect={() => dispatch(playTrack(trackId)).catch(() => {})}>
               <Play />
               {t("actions.play")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => addToQueue(trackId).catch(() => {})}>
+              <ListEnd />
+              {t("player.addToQueue")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() =>

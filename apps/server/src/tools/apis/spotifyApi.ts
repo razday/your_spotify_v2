@@ -29,6 +29,69 @@ interface SpotifyPlaylist {
   owner: { id: string };
 }
 
+export interface SpotifyDevice {
+  id: string | null;
+  is_active: boolean;
+  is_restricted: boolean;
+  name: string;
+  type: string;
+  volume_percent: number | null;
+  supports_volume: boolean;
+}
+
+interface SpotifyImage {
+  url: string;
+}
+
+export type SpotifyPlayerItem =
+  | {
+      type: "track";
+      id: string;
+      uri: string;
+      name: string;
+      duration_ms: number;
+      artists: { id: string; name: string }[];
+      album: { id: string; name: string; images: SpotifyImage[] };
+    }
+  | {
+      type: "episode";
+      id: string;
+      uri: string;
+      name: string;
+      duration_ms: number;
+      images: SpotifyImage[];
+      show: { id: string; name: string; images: SpotifyImage[] };
+    };
+
+export interface SpotifyPlayerState {
+  device: SpotifyDevice | null;
+  shuffle_state: boolean;
+  repeat_state: "off" | "context" | "track";
+  timestamp: number;
+  progress_ms: number | null;
+  is_playing: boolean;
+  item: SpotifyPlayerItem | null;
+  actions?: { disallows?: Record<string, boolean> };
+}
+
+export type PlayerCommand =
+  | { type: "play"; deviceId?: string }
+  | { type: "pause" }
+  | { type: "next" }
+  | { type: "previous" }
+  | { type: "seek"; positionMs: number }
+  | { type: "volume"; volume: number }
+  | { type: "shuffle"; state: boolean }
+  | { type: "repeat"; state: "off" | "context" | "track" }
+  | { type: "transfer"; deviceId: string; play: boolean }
+  | { type: "queue"; uri: string };
+
+// A user is waiting on these requests: fail fast on a long rate limit
+const INTERACTIVE = { priority: "high", maxRetryAfterMs: 5000 } as const;
+
+const deviceQuery = (deviceId?: string) =>
+  deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : "";
+
 type Target = { userId: string } | { accountId: string };
 
 export class SpotifyAPI {
@@ -43,7 +106,7 @@ export class SpotifyAPI {
     return new SpotifyAPI({ accountId });
   }
 
-  private async resolveAccount() {
+  public async resolveAccount() {
     const account =
       "accountId" in this.target
         ? await getAccountById(new Types.ObjectId(this.target.accountId), true)
@@ -100,9 +163,104 @@ export class SpotifyAPI {
     return client.get(url);
   }
 
-  public async playTrack(trackUri: string) {
+  // Plays a track on a device. From its album when known, like the Spotify
+  // apps do, so the playback goes on with the next tracks of the album
+  public async playTrack(
+    trackUri: string,
+    options: { albumUri?: string; deviceId?: string } = {},
+  ) {
     const client = await this.checkToken();
-    return client.put("/me/player/play", { data: { uris: [trackUri] } });
+    const url = `/me/player/play${deviceQuery(options.deviceId)}`;
+    if (options.albumUri) {
+      try {
+        await client.put(url, {
+          ...INTERACTIVE,
+          data: { context_uri: options.albumUri, offset: { uri: trackUri } },
+        });
+        return;
+      } catch (e) {
+        // The track may not be part of this album anymore (relinked)
+        if (!(e instanceof HttpError) || e.status !== 400) {
+          throw e;
+        }
+      }
+    }
+    await client.put(url, { ...INTERACTIVE, data: { uris: [trackUri] } });
+  }
+
+  // The player state, null when nothing is playing
+  public async player() {
+    const client = await this.checkToken();
+    const res = await client.get<SpotifyPlayerState | null>(
+      "/me/player?additional_types=episode",
+      INTERACTIVE,
+    );
+    return res.data;
+  }
+
+  public async devices() {
+    const client = await this.checkToken();
+    const res = await client.get<{ devices: SpotifyDevice[] }>(
+      "/me/player/devices",
+      INTERACTIVE,
+    );
+    return res.data?.devices ?? [];
+  }
+
+  public async queue() {
+    const client = await this.checkToken();
+    const res = await client.get<{
+      currently_playing: SpotifyPlayerItem | null;
+      queue: SpotifyPlayerItem[];
+    }>("/me/player/queue", INTERACTIVE);
+    return res.data?.queue ?? [];
+  }
+
+  public async playerCommand(command: PlayerCommand) {
+    const client = await this.checkToken();
+    switch (command.type) {
+      case "play":
+        return client.put(
+          `/me/player/play${deviceQuery(command.deviceId)}`,
+          INTERACTIVE,
+        );
+      case "pause":
+        return client.put("/me/player/pause", INTERACTIVE);
+      case "next":
+        return client.post("/me/player/next", INTERACTIVE);
+      case "previous":
+        return client.post("/me/player/previous", INTERACTIVE);
+      case "seek":
+        return client.put(
+          `/me/player/seek?position_ms=${Math.max(0, Math.round(command.positionMs))}`,
+          INTERACTIVE,
+        );
+      case "volume":
+        return client.put(
+          `/me/player/volume?volume_percent=${Math.round(command.volume)}`,
+          INTERACTIVE,
+        );
+      case "shuffle":
+        return client.put(
+          `/me/player/shuffle?state=${command.state}`,
+          INTERACTIVE,
+        );
+      case "repeat":
+        return client.put(
+          `/me/player/repeat?state=${command.state}`,
+          INTERACTIVE,
+        );
+      case "transfer":
+        return client.put("/me/player", {
+          ...INTERACTIVE,
+          data: { device_ids: [command.deviceId], play: command.play },
+        });
+      case "queue":
+        return client.post(
+          `/me/player/queue?uri=${encodeURIComponent(command.uri)}`,
+          INTERACTIVE,
+        );
+    }
   }
 
   public async me() {
@@ -141,7 +299,8 @@ export class SpotifyAPI {
       const chk = chunks[i]!;
 
       const client = await this.checkToken();
-      await client.post(`/playlists/${id}/tracks`, {
+      // /tracks was removed by Spotify in February 2026
+      await client.post(`/playlists/${id}/items`, {
         data: { uris: chk.map((trackId) => `spotify:track:${trackId}`) },
       });
     }

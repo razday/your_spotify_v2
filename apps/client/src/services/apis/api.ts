@@ -36,6 +36,12 @@ import {
   Repeat,
   TimelineItemType,
 } from "./insights";
+import {
+  AccountPlayer,
+  PlayerCommand,
+  PlayerDevice,
+  PlayerItem,
+} from "./player";
 
 const axios = Axios.create({
   baseURL: (window as any as { API_ENDPOINT: string }).API_ENDPOINT,
@@ -207,7 +213,15 @@ export const api = {
   deleteUser: (id: string) => delet(`/account/${id}`),
   setGlobalPreferences: (preferences: Partial<GlobalPreferences>) =>
     post<GlobalPreferences>("/global/preferences", preferences),
-  play: (id: string) => axios.post("/spotify/play", { id }),
+  play: (id: string, accountId?: string) =>
+    axios.post("/spotify/play", { id, accountId }),
+  players: () => get<AccountPlayer[]>("/player"),
+  playerCommand: (accountId: string, command: PlayerCommand) =>
+    post(`/player/${accountId}/command`, command),
+  playerDevices: (accountId: string) =>
+    get<PlayerDevice[]>(`/player/${accountId}/devices`),
+  playerQueue: (accountId: string) =>
+    get<PlayerItem[]>(`/player/${accountId}/queue`),
   getTracks: (
     start: Date | undefined,
     end: Date | undefined,

@@ -68,14 +68,6 @@ export function useFeatRatio(range: Range) {
   });
 }
 
-export function useTimePerHour(range: Range) {
-  const scope = useScope();
-  return useQuery({
-    queryKey: ["timePerHour", scope, ...rangeKey(range)],
-    queryFn: () => data(api.timePerHourOfDay(range.start, range.end)),
-  });
-}
-
 export function useTopTracks(range: Range, nb: number) {
   const scope = useScope();
   return useQuery({

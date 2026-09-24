@@ -27,12 +27,27 @@ function readStoredMode(): DarkModeType {
   return "follow";
 }
 
+// The mode remembered in this browser, as an observable store
+const storedListeners = new Set<() => void>();
+
 function storeMode(mode: DarkModeType) {
   try {
     localStorage.setItem(STORAGE_KEY, mode);
   } catch {
     // Storage unavailable
   }
+  storedListeners.forEach((listener) => listener());
+}
+
+function subscribeStored(callback: () => void) {
+  storedListeners.add(callback);
+  return () => {
+    storedListeners.delete(callback);
+  };
+}
+
+function useStoredMode() {
+  return useSyncExternalStore(subscribeStored, readStoredMode, () => "follow");
 }
 
 function subscribeSystem(callback: () => void) {
@@ -49,11 +64,14 @@ export function useSystemPrefersDark() {
   );
 }
 
-// Mode of the logged user, or the one remembered in this browser
+// The logged user's setting. Guests (shared link) and logged out visitors
+// keep the mode remembered in their own browser.
 export function useThemeMode(): DarkModeType {
   const user = useSelector(selectUser);
+  const isPublic = useSelector(selectIsPublic);
   const userMode = useSelector(selectDarkMode);
-  return user ? userMode : readStoredMode();
+  const storedMode = useStoredMode();
+  return user && !isPublic ? userMode : storedMode;
 }
 
 export function useResolvedTheme(): "dark" | "light" {
@@ -77,8 +95,13 @@ export function useApplyTheme() {
       ?.setAttribute("content", resolved === "dark" ? "#0f1115" : "#fafafa");
   }, [resolved]);
 
+  // Remembered for the next visit, applied before React starts
   useEffect(() => {
-    storeMode(mode);
+    try {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } catch {
+      // Storage unavailable
+    }
   }, [mode]);
 }
 
@@ -89,15 +112,9 @@ export function useSetThemeMode() {
 
   return (mode: DarkModeType) => {
     storeMode(mode);
-    if (user) {
-      // Updates the user settings optimistically, synced unless guest
+    if (user && !isPublic) {
+      // Optimistic, saved in the user settings
       dispatch(setDarkMode(mode)).catch(() => {});
-    } else {
-      document.documentElement.classList.toggle(
-        "dark",
-        mode === "dark" || (mode === "follow" && media().matches),
-      );
     }
-    return isPublic;
   };
 }

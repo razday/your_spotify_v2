@@ -40,7 +40,7 @@ import {
   useRecentTracks,
   useSongsPer,
   useTimePer,
-  useTimePerHour,
+  useHeatmap,
   useTopAlbums,
   useTopArtists,
   useTopTracks,
@@ -66,7 +66,7 @@ export default function OverviewPage() {
   const previous = useOverview(period.previous);
   const timePer = useTimePer(period, period.timesplit);
   const songsPer = useSongsPer(period, period.timesplit);
-  const perHour = useTimePerHour(period);
+  const perHour = useHeatmap(period);
   const topArtists = useTopArtists(period, 6);
   const topTracks = useTopTracks(period, 6);
   const topAlbums = useTopAlbums(period, 6);
@@ -93,11 +93,13 @@ export default function OverviewPage() {
         );
 
   const hourData = Array.from({ length: 24 }, (_, hour) => {
-    const row = perHour.data?.find((h) => h._id === hour);
+    const durationMs = (perHour.data ?? [])
+      .filter((cell) => cell.hour === hour)
+      .reduce((sum, cell) => sum + cell.durationMs, 0);
     return {
       label: hour.toString(),
       tooltipLabel: `${formatHour(hour)} – ${formatHour((hour + 1) % 24)}`,
-      value: Math.round((row?.count ?? 0) / 60000),
+      value: Math.round(durationMs / 60000),
     };
   });
 

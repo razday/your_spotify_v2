@@ -221,7 +221,7 @@ export default function RecapPage() {
                         {item.artist.name}
                       </span>
                       <span className="text-sm text-white/70 tabular">
-                        {formatMinutes(item.duration_ms)} min
+                        {pluralize(item.count, "play")}
                       </span>
                     </Link>
                   ))}

@@ -47,7 +47,11 @@ function subscribeStored(callback: () => void) {
 }
 
 function useStoredMode() {
-  return useSyncExternalStore(subscribeStored, readStoredMode, () => "follow");
+  return useSyncExternalStore(
+    subscribeStored,
+    readStoredMode,
+    (): DarkModeType => "follow",
+  );
 }
 
 function subscribeSystem(callback: () => void) {

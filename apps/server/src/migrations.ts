@@ -41,6 +41,7 @@ import { up as create_private_data } from "./migrations/1708973485300-create_pri
 import { up as add_metadata_to_infos } from "./migrations/1708973485301-add_metadata_to_infos";
 import { up as add_language_to_user } from "./migrations/1708973485302-add_language_to_user";
 import { up as local_accounts } from "./migrations/1790208000000-local_accounts";
+import { up as spotify_accounts } from "./migrations/1790300000000-spotify_accounts";
 
 function noop() {}
 
@@ -77,6 +78,10 @@ export function runMigrations() {
           down: noop,
         },
         "1790208000000-local_accounts.js": { up: local_accounts, down: noop },
+        "1790300000000-spotify_accounts.js": {
+          up: spotify_accounts,
+          down: noop,
+        },
       },
       stateStore: new MongoDbStore(),
     },

@@ -1,4 +1,4 @@
-import { getAllUsers, getFirstInfo, storeInUser } from "../database";
+import { getAllUsers, getFirstInfo } from "../database";
 import { UserModel } from "../database/Models";
 import { User } from "../database/schemas/user";
 import { SpotifyAPI } from "../tools/apis/spotifyApi";
@@ -6,9 +6,16 @@ import { logger } from "../tools/logger";
 import { startMigration } from "../tools/migrations";
 import { deleteUser } from "../tools/user";
 
+// Fields of that time, users do not have them anymore
+type LegacyUser = User & {
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  spotifyId?: string | null;
+};
+
 export const up = async () => {
   startMigration("switch to spotify login");
-  let allUsers = await getAllUsers(true);
+  let allUsers = (await getAllUsers(true)) as unknown as LegacyUser[];
 
   // Delete users with no spotify access token
   const toDelete: string[] = allUsers
@@ -25,7 +32,10 @@ export const up = async () => {
       try {
         const res = await spotifyApi.me();
         us.spotifyId = res.id;
-        await storeInUser("_id", us._id, { spotifyId: us.spotifyId });
+        await UserModel.collection.updateOne(
+          { _id: us._id },
+          { $set: { spotifyId: us.spotifyId } },
+        );
       } catch (e) {
         logger.error(
           e,
@@ -38,7 +48,7 @@ export const up = async () => {
 
   // Builds a record that lists every account that have the same SpotifyID
   // Deletes account that have no spotify id, they are not initialized
-  const usersWithSameSpotifyID = allUsers.reduce<Record<string, User[]>>(
+  const usersWithSameSpotifyID = allUsers.reduce<Record<string, LegacyUser[]>>(
     (acc, curr) => {
       const { spotifyId } = curr;
       if (!spotifyId) {

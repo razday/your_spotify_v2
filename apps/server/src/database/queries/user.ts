@@ -9,18 +9,15 @@ import {
   UserModel,
 } from "../Models";
 import { Infos } from "../schemas/info";
-import { SpotifyAccount, User, USERNAME_COLLATION } from "../schemas/user";
+import { User, USERNAME_COLLATION } from "../schemas/user";
 
 export const getUserFromField = async <F extends keyof User>(
   field: F,
   value: User[F],
-  includeTokens: boolean,
+  _includeTokens: boolean,
   crash = true,
 ) => {
-  const user = UserModel.findOne(
-    { [field]: value },
-    includeTokens ? "-tracks" : "-tracks -accessToken -refreshToken",
-  );
+  const user = UserModel.findOne({ [field]: value }, "-tracks");
 
   if (!user && crash) {
     throw new NoResult();
@@ -28,18 +25,13 @@ export const getUserFromField = async <F extends keyof User>(
   return user;
 };
 
-export const getAllUsers = (includeTokens: boolean) =>
-  UserModel.find(
-    {},
-    includeTokens ? "-tracks" : "-tracks -accessToken -refreshToken",
-  );
+export const getAllUsers = (_includeTokens: boolean) =>
+  UserModel.find({}, "-tracks");
 
 export const getUserByUsername = (username: string, withPassword = false) =>
   UserModel.findOne(
     { username },
-    withPassword
-      ? "-tracks -accessToken -refreshToken +passwordHash"
-      : "-tracks -accessToken -refreshToken",
+    withPassword ? "-tracks +passwordHash" : "-tracks",
   ).collation(USERNAME_COLLATION);
 
 export const getPasswordHash = async (userId: Types.ObjectId) => {
@@ -62,49 +54,14 @@ export const createUser = (
     username,
     admin,
     passwordHash,
-    spotifyId: null,
-    accessToken: null,
-    refreshToken: null,
-    expiresIn: 0,
-    // Set last timestamp to yesterday so that we already have a pull of tracks
-    lastTimestamp: Date.now() - 1000 * 60 * 60 * 24,
     settings: {
       historyLine: false,
       preferredStatsPeriod: "month",
       nbElements: 10,
       metricUsed: "number",
       dateFormat: "default",
+      language: "en",
     },
-  });
-
-export const linkSpotifyAccount = (
-  userId: Types.ObjectId,
-  infos: {
-    spotifyId: string;
-    spotifyAccount: SpotifyAccount;
-    accessToken: string;
-    refreshToken?: string;
-    expiresIn: number;
-  },
-) =>
-  UserModel.findByIdAndUpdate(userId, { ...infos, spotifyLinkExpired: false });
-
-export const markSpotifyLinkExpired = (userId: Types.ObjectId) =>
-  UserModel.findByIdAndUpdate(userId, {
-    accessToken: null,
-    refreshToken: null,
-    expiresIn: 0,
-    spotifyLinkExpired: true,
-  });
-
-export const unlinkSpotifyAccount = (userId: Types.ObjectId) =>
-  UserModel.findByIdAndUpdate(userId, {
-    spotifyId: null,
-    spotifyAccount: null,
-    accessToken: null,
-    refreshToken: null,
-    expiresIn: 0,
-    spotifyLinkExpired: false,
   });
 
 export const storeInUser = <F extends keyof User>(

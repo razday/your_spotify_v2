@@ -6,6 +6,7 @@ import { fixRunningImportsAtStart } from "../database/queries/importer";
 import { dbLoop } from "../spotify/looper";
 import { get, getWithDefault } from "../tools/env";
 import { logger } from "../tools/logger";
+import { loadSpotifyApp } from "../tools/oauth/spotifyApp";
 
 export function startServer() {
   const port = getWithDefault("PORT", 8080);
@@ -44,6 +45,7 @@ export function startServer() {
 
   connect()
     .then(async () => {
+      await loadSpotifyApp();
       server.listen(port);
       server.on("error", onError);
       server.on("listening", onListening);

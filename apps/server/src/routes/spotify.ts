@@ -349,12 +349,9 @@ router.get("/top/sessions", isLoggedOrGuest, async (req, res) => {
 });
 
 router.get("/playlists", logged, withHttpClient, async (req, res) => {
-  const { client, user } = req as LoggedRequest & SpotifyRequest;
+  const { client } = req as LoggedRequest & SpotifyRequest;
 
-  const playlists = await client.playlists();
-  res
-    .status(200)
-    .send(playlists.filter((playlist) => playlist.owner.id === user.spotifyId));
+  res.status(200).send(await client.ownPlaylists());
 });
 
 const createPlaylistBase = z.object({

@@ -9,6 +9,8 @@ export interface Infos {
   durationMs: number;
   played_at: Date;
   blacklistedBy?: "artist";
+  // Spotify id of the account the play comes from (several can be linked)
+  account?: string;
 }
 
 export const InfosSchema = new Schema<Infos>(
@@ -23,6 +25,7 @@ export const InfosSchema = new Schema<Infos>(
     durationMs: { type: Number },
 
     played_at: { type: Date, index: true },
+    account: { type: String, required: false },
     blacklistedBy: {
       type: [String],
       enum: ["artist"],

@@ -1,10 +1,11 @@
 import { Types } from "mongoose";
 
 import {
-  getUserFromField,
-  markSpotifyLinkExpired,
-  storeInUser,
-} from "../../database";
+  getAccountById,
+  getUsableAccount,
+  markAccountExpired,
+  storeAccountTokens,
+} from "../../database/queries/spotifyAccount";
 import { SpotifyAlbum } from "../../database/schemas/album";
 import { SpotifyArtist } from "../../database/schemas/artist";
 import { SpotifyTrack } from "../../database/schemas/track";
@@ -19,6 +20,7 @@ export interface SpotifyMe {
   display_name: string;
   email?: string;
   product?: string;
+  images?: { url: string; width: number | null; height: number | null }[];
 }
 
 interface SpotifyPlaylist {
@@ -27,58 +29,70 @@ interface SpotifyPlaylist {
   owner: { id: string };
 }
 
-export class SpotifyAPI {
-  constructor(private readonly userId: string) {}
+type Target = { userId: string } | { accountId: string };
 
-  private async checkToken() {
-    const user = await getUserFromField(
-      "_id",
-      new Types.ObjectId(this.userId),
-      true,
-    );
-    let access: string | null | undefined = user?.accessToken;
-    if (!user) {
-      throw new Error("User not found");
-    }
-    if (!user.spotifyId || user.spotifyLinkExpired) {
+export class SpotifyAPI {
+  private readonly target: Target;
+
+  // A user id targets their usable account (primary first)
+  constructor(target: string | Target) {
+    this.target = typeof target === "string" ? { userId: target } : target;
+  }
+
+  static forAccount(accountId: string) {
+    return new SpotifyAPI({ accountId });
+  }
+
+  private async resolveAccount() {
+    const account =
+      "accountId" in this.target
+        ? await getAccountById(new Types.ObjectId(this.target.accountId), true)
+        : await getUsableAccount(new Types.ObjectId(this.target.userId));
+    if (!account || account.status !== "active") {
       throw new SpotifyNotLinkedError();
     }
+    return account;
+  }
+
+  private async checkToken() {
+    const account = await this.resolveAccount();
+    let access = account.accessToken;
     // Refresh the token if it expires in less than two minutes (1000ms * 120)
-    if (Date.now() > user.expiresIn - 1000 * 120) {
-      const token = user.refreshToken;
-      if (!token) {
-        await markSpotifyLinkExpired(user._id);
-        throw new SpotifyNotLinkedError("User has no refresh token");
+    if (Date.now() > account.expiresIn - 1000 * 120) {
+      if (!account.refreshToken) {
+        await markAccountExpired(account._id);
+        throw new SpotifyNotLinkedError("Spotify account has no refresh token");
       }
       let infos;
       try {
-        infos = await spotifyProvider.refresh(token);
+        infos = await spotifyProvider.refresh(account.refreshToken);
       } catch (e) {
         // Spotify answers invalid_grant when the refresh token was revoked
-        // (access removed, password changed...): the user must link again
+        // (access removed, password changed...): it has to be linked again
         if (
           e instanceof HttpError &&
           e.status === 400 &&
           e.body.includes("invalid_grant")
         ) {
-          await markSpotifyLinkExpired(user._id);
+          await markAccountExpired(account._id);
           logger.warn(
-            `[${user.username}]: Spotify authorization revoked, the user has to link Spotify again`,
+            `[${account.displayName ?? account.spotifyId}]: Spotify authorization revoked, the account has to be linked again`,
           );
           throw new SpotifyNotLinkedError("Spotify authorization revoked");
         }
         throw e;
       }
 
-      await storeInUser("_id", user._id, infos);
-      logger.info(`Refreshed token for ${user.username}`);
+      await storeAccountTokens(account._id, infos);
+      logger.info(
+        `Refreshed token of ${account.displayName ?? account.spotifyId}`,
+      );
       access = infos.accessToken;
     }
     if (access) {
       return spotifyProvider.getHttpClient(access);
-    } else {
-      throw new Error("Could not get any access token");
     }
+    throw new Error("Could not get any access token");
   }
 
   public async raw(url: string) {
@@ -110,6 +124,15 @@ export class SpotifyAPI {
       items.push(...res.data.items);
     }
     return items;
+  }
+
+  // Only the playlists of the account, the others cannot be modified
+  public async ownPlaylists() {
+    const account = await this.resolveAccount();
+    const playlists = await this.playlists();
+    return playlists.filter(
+      (playlist) => playlist.owner.id === account.spotifyId,
+    );
   }
 
   private async handleAddIdsToPlaylist(id: string, ids: string[]) {

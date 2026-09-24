@@ -28,6 +28,7 @@ import { deleteUser } from "../tools/user";
 import { Version } from "../tools/version";
 import { toBoolean, toNumber } from "../tools/zod";
 import { usernameSchema } from "./auth";
+import { listAccounts } from "./spotifyAccounts";
 
 export const router = Router();
 
@@ -59,6 +60,7 @@ const settingsSchema = z.object({
     .nullable()
     .transform((e) => e ?? undefined)
     .optional(),
+  language: z.enum(["en", "fr"]).optional(),
 });
 
 router.post("/settings", logged, async (req, res) => {
@@ -72,12 +74,18 @@ router.post("/settings", logged, async (req, res) => {
 router.get("/me", optionalLoggedOrGuest, async (req, res) => {
   const { user } = req as OptionalLoggedRequest;
   if (user) {
+    // Someone viewing a shared link does not see the emails
+    const isGuest = typeof req.query.token === "string";
+    const spotifyAccounts = (await listAccounts(user._id)).map((account) =>
+      isGuest ? { ...account, email: null } : account,
+    );
     res
       .status(200)
       .send({
         status: true,
         user,
         hasPassword: await userHasPassword(user._id),
+        spotifyAccounts,
       });
     return;
   }

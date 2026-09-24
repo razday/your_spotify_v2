@@ -9,7 +9,6 @@ import {
   getUserCount,
   getUserFromField,
   setUserPassword,
-  unlinkSpotifyAccount,
 } from "../database";
 import { AttemptLimiter } from "../tools/attemptLimiter";
 import { logger } from "../tools/logger";
@@ -171,12 +170,5 @@ router.put("/password/:id", logged, admin, async (req, res) => {
   }
   await setUserPassword(target._id, await hashPassword(newPassword));
   logger.info(`Password of ${target.username} was reset by an admin`);
-  res.status(204).end();
-});
-
-router.delete("/spotify", logged, async (req, res) => {
-  const { user } = req as LoggedRequest;
-
-  await unlinkSpotifyAccount(user._id);
   res.status(204).end();
 });

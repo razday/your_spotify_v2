@@ -8,6 +8,7 @@ import { z } from "zod";
 import { getUserFromField, getGlobalPreferences } from "../database";
 import { getUserImporterState } from "../database/queries/importer";
 import { getPrivateData } from "../database/queries/privateData";
+import { hasUsableAccount } from "../database/queries/spotifyAccount";
 import { spotifyHttpClientFactory } from "./apis/queuedHttpClient.providers";
 import { USER_FACING_MAX_RETRY_AFTER_MS } from "./apis/queueHttpClient";
 import { SpotifyAPI } from "./apis/spotifyApi";
@@ -203,7 +204,7 @@ export const withHttpClient = async (
 ) => {
   const { user } = req as LoggedRequest;
 
-  if (!user.spotifyId || user.spotifyLinkExpired) {
+  if (!(await hasUsableAccount(user._id))) {
     res.status(409).send({ code: "SPOTIFY_NOT_LINKED" });
     return;
   }

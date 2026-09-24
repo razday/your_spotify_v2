@@ -8,10 +8,15 @@ export interface Provider {
   exchangeCode(
     code: string,
     state: string,
-  ): Promise<{ accessToken: string; refreshToken?: string; expiresIn: number }>;
+  ): Promise<{
+    accessToken: string;
+    refreshToken?: string;
+    expiresIn: number;
+    scopes: string[];
+  }>;
   refresh(
     refreshToken: string,
-  ): Promise<{ accessToken: string; expiresIn: number }>;
+  ): Promise<{ accessToken: string; expiresIn: number; refreshToken?: string }>;
   getHttpClient(accessToken: string): QueuedHttpClient;
 }
 
@@ -19,13 +24,34 @@ export class Spotify implements Provider {
   private readonly client = spotifyHttpClientFactory.createClient({});
 
   constructor(
-    private readonly clientId: string,
-    private readonly clientSecret: string,
+    private clientId: string | undefined,
+    private clientSecret: string | undefined,
     private readonly scopes: string,
     private readonly redirectUri: string,
   ) {}
 
+  // The Spotify app can be changed by an admin while the server runs
+  setCredentials(clientId: string, clientSecret: string) {
+    this.clientId = clientId;
+    this.clientSecret = clientSecret;
+  }
+
+  getClientId() {
+    return this.clientId;
+  }
+
+  isConfigured() {
+    return Boolean(this.clientId && this.clientSecret);
+  }
+
+  getRedirectUri() {
+    return this.redirectUri;
+  }
+
   async getRedirect() {
+    if (!this.clientId) {
+      throw new Error("The Spotify app is not configured");
+    }
     const authorizeUrl = new URL("https://accounts.spotify.com/authorize");
     const state = generateRandomString(32);
 
@@ -48,8 +74,8 @@ export class Spotify implements Provider {
           grant_type: "authorization_code",
           code,
           redirect_uri: this.redirectUri,
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
+          client_id: this.clientId ?? "",
+          client_secret: this.clientSecret ?? "",
           state,
         },
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -57,9 +83,12 @@ export class Spotify implements Provider {
     );
 
     return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
+      accessToken: data.access_token as string,
+      refreshToken: data.refresh_token as string | undefined,
       expiresIn: Date.now() + data.expires_in * 1000,
+      scopes: ((data.scope as string | undefined) ?? "")
+        .split(" ")
+        .filter(Boolean),
     };
   }
 
@@ -80,6 +109,10 @@ export class Spotify implements Provider {
     return {
       accessToken: data.access_token as string,
       expiresIn: Date.now() + data.expires_in * 1000,
+      // Spotify may rotate the refresh token
+      ...(data.refresh_token
+        ? { refreshToken: data.refresh_token as string }
+        : {}),
     };
   }
 

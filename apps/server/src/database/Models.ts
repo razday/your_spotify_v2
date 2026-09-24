@@ -7,6 +7,7 @@ import { ImporterStateSchema } from "./schemas/import";
 import { InfosSchema } from "./schemas/info";
 import { MigrationSchema } from "./schemas/migration";
 import { PrivateDataSchema } from "./schemas/privateData";
+import { SpotifyAccountSchema } from "./schemas/spotifyAccount";
 import { TrackSchema } from "./schemas/track";
 import { UserSchema } from "./schemas/user";
 
@@ -22,3 +23,7 @@ export const GlobalPreferencesModel = model(
 );
 export const ImporterStateModel = model("ImporterState", ImporterStateSchema);
 export const PrivateDataModel = model("PrivateData", PrivateDataSchema);
+export const SpotifyAccountModel = model(
+  "SpotifyAccount",
+  SpotifyAccountSchema,
+);

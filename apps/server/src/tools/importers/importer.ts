@@ -6,6 +6,7 @@ import {
   getImporterState,
   setImporterStateStatus,
 } from "../../database/queries/importer";
+import { hasUsableAccount } from "../../database/queries/spotifyAccount";
 import { User } from "../../database/schemas/user";
 import { logger } from "../logger";
 import { Metrics } from "../metrics";
@@ -79,8 +80,9 @@ export async function runImporter<T extends ImporterStateType>(
       .inc();
     return initDone(false);
   }
-  if (!user.accessToken || !user.refreshToken) {
-    logger.error(`User ${user.username} has no accessToken or no refreshToken`);
+  // Track details are fetched from Spotify with one of the user's accounts
+  if (!(await hasUsableAccount(user._id))) {
+    logger.error(`User ${user.username} has no usable Spotify account`);
     Metrics.importsTotal
       .labels({ status: "failure", user: userId, type: name })
       .inc();

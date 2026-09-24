@@ -2,11 +2,12 @@ import { Router } from "express";
 import { Types } from "mongoose";
 import { z } from "zod";
 
+import { userHasPassword } from "../database";
 import {
-  getUserFromField,
-  linkSpotifyAccount,
-  userHasPassword,
-} from "../database";
+  getAccountBySpotifyId,
+  getAccountsOfUser,
+  upsertLinkedAccount,
+} from "../database/queries/spotifyAccount";
 import { spotifyHttpClientFactory } from "../tools/apis/queuedHttpClient.providers";
 import {
   HttpError,
@@ -51,6 +52,15 @@ router.get("/spotify", loginRateLimit, optionalLogged, async (req, res) => {
   if (isOffline) {
     await createSession(req, res, isOffline, false);
     res.status(204).end();
+    return;
+  }
+
+  if (!spotifyProvider.isConfigured()) {
+    res.redirect(
+      clientUrl(user ? "/" : "/login", {
+        [user ? "link_error" : "error"]: "not_configured",
+      }),
+    );
     return;
   }
 
@@ -140,31 +150,38 @@ router.get("/spotify/callback", async (req, res) => {
     const linkInfos = {
       ...infos,
       spotifyId: spotifyMe.id,
-      spotifyAccount: {
-        displayName: spotifyMe.display_name ?? null,
-        email: spotifyMe.email ?? null,
-        product: spotifyMe.product ?? null,
-      },
+      displayName: spotifyMe.display_name ?? null,
+      email: spotifyMe.email ?? null,
+      product: spotifyMe.product ?? null,
+      image:
+        [...(spotifyMe.images ?? [])].sort(
+          (a, b) => (a.width ?? 0) - (b.width ?? 0),
+        )[0]?.url ?? null,
     };
-    const owner = await getUserFromField("spotifyId", spotifyMe.id, false);
+    const existing = await getAccountBySpotifyId(spotifyMe.id);
 
     if (linkingUserId) {
-      if (owner && owner._id.toString() !== linkingUserId) {
+      const owner = new Types.ObjectId(linkingUserId);
+      if (existing && existing.owner.toString() !== linkingUserId) {
         throw new LinkRefusedError("already_linked");
       }
-      await linkSpotifyAccount(new Types.ObjectId(linkingUserId), linkInfos);
+      const hadAccounts = (await getAccountsOfUser(owner)).length > 0;
+      await upsertLinkedAccount(owner, linkInfos);
       logger.info(`Spotify account ${spotifyMe.id} linked`);
-      redirectTo = clientUrl("/", { spotify: "linked" });
+      // Adding one more account happens from the settings, go back there
+      redirectTo = hadAccounts
+        ? clientUrl("/settings/account", { spotify: "linked" })
+        : clientUrl("/", { spotify: "linked" });
     } else {
       // Login with Spotify, only for accounts that have no password yet
-      if (!owner) {
+      if (!existing) {
         throw new LinkRefusedError("no_account");
       }
-      if (await userHasPassword(owner._id)) {
+      if (await userHasPassword(existing.owner)) {
         throw new LinkRefusedError("use_password");
       }
-      await linkSpotifyAccount(owner._id, linkInfos);
-      await createSession(req, res, owner._id.toString(), false);
+      await upsertLinkedAccount(existing.owner, linkInfos);
+      await createSession(req, res, existing.owner.toString(), false);
       redirectTo = clientUrl("/settings/account", { set_password: 1 });
     }
   } catch (e) {

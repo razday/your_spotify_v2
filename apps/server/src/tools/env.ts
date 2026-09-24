@@ -7,8 +7,9 @@ const validators = {
   MAX_IMPORT_CACHE_SIZE: z.preprocess(toNumber, z.number().optional()),
   CORS: z.string().optional(),
   MONGO_ENDPOINT: z.string().optional(),
-  SPOTIFY_PUBLIC: z.string(),
-  SPOTIFY_SECRET: z.string(),
+  // Can also be set by an admin from the settings
+  SPOTIFY_PUBLIC: z.string().optional(),
+  SPOTIFY_SECRET: z.string().optional(),
   API_ENDPOINT: z.string(),
   PORT: z.preprocess(toNumber, z.number().optional()),
   TIMEZONE: z.string().optional(),

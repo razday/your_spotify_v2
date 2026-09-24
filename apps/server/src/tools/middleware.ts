@@ -8,6 +8,8 @@ import { z } from "zod";
 import { getUserFromField, getGlobalPreferences } from "../database";
 import { getUserImporterState } from "../database/queries/importer";
 import { getPrivateData } from "../database/queries/privateData";
+import { spotifyHttpClientFactory } from "./apis/queuedHttpClient.providers";
+import { USER_FACING_MAX_RETRY_AFTER_MS } from "./apis/queueHttpClient";
 import { SpotifyAPI } from "./apis/spotifyApi";
 import { YourSpotifyError } from "./errors/error";
 import { logger } from "./logger";
@@ -167,6 +169,20 @@ export const withHttpClient = async (
   next: NextFunction,
 ) => {
   const { user } = req as LoggedRequest;
+
+  // Answer right away instead of letting the request hang until Spotify's
+  // Retry-After is over (which can be hours when the app quota is exceeded).
+  const rateLimitRemainingMs =
+    spotifyHttpClientFactory.getRateLimitRemainingMs();
+  if (rateLimitRemainingMs > USER_FACING_MAX_RETRY_AFTER_MS) {
+    res
+      .status(429)
+      .send({
+        code: "SPOTIFY_RATE_LIMITED",
+        retryAfter: Math.ceil(rateLimitRemainingMs / 1000),
+      });
+    return;
+  }
 
   const client = new SpotifyAPI(user._id.toString());
   (req as SpotifyRequest & LoggedRequest).client = client;

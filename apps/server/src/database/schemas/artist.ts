@@ -11,6 +11,8 @@ export interface Artist {
   name: string;
   type: string;
   uri: string;
+  // Genres come from MusicBrainz, see tools/genres
+  genresFetchedAt?: Date | null;
 }
 export type SpotifyArtist = Artist;
 
@@ -24,6 +26,7 @@ export const ArtistSchema = new Schema<Artist>(
     name: String,
     type: String,
     uri: String,
+    genresFetchedAt: { type: Date, required: false },
   },
   { toJSON: { virtuals: true }, toObject: { virtuals: true } },
 );

@@ -11,7 +11,18 @@ import {
   getReleaseYears,
   getRepeats,
 } from "../database/queries/insights";
-import { isLoggedOrGuest, validate } from "../tools/middleware";
+import {
+  getAchievementMetrics,
+  getForgotten,
+  getGenres,
+  getLeaderboard,
+} from "../database/queries/social";
+import {
+  affinityAllowed,
+  isLoggedOrGuest,
+  logged,
+  validate,
+} from "../tools/middleware";
 import { LoggedRequest } from "../tools/types";
 import { toDate, toNumber } from "../tools/zod";
 
@@ -80,4 +91,33 @@ router.get("/item-timeline", isLoggedOrGuest, async (req, res) => {
   const { user } = req as LoggedRequest;
   const { type, id } = validate(req.query, timelineSchema);
   res.status(200).send(await getItemTimeline(user, type, id));
+});
+
+const forgottenSchema = z.object({
+  days: z.preprocess(toNumber, z.number().int().min(30).max(3650)).default(90),
+  nb: z.preprocess(toNumber, z.number().int().min(1).max(50)).default(20),
+});
+
+router.get("/forgotten", isLoggedOrGuest, async (req, res) => {
+  const { user } = req as LoggedRequest;
+  const { days, nb } = validate(req.query, forgottenSchema);
+  res.status(200).send(await getForgotten(user, days, nb));
+});
+
+router.get("/achievements", isLoggedOrGuest, async (req, res) => {
+  const { user } = req as LoggedRequest;
+  res.status(200).send(await getAchievementMetrics(user));
+});
+
+router.get("/genres", isLoggedOrGuest, async (req, res) => {
+  const { user } = req as LoggedRequest;
+  const { start, end, nb } = validate(req.query, intervalWithLimit);
+  res.status(200).send(await getGenres(user, start, end, nb));
+});
+
+// Social: every user of the instance, only when the admin allows it
+router.get("/leaderboard", logged, affinityAllowed, async (req, res) => {
+  const { user } = req as LoggedRequest;
+  const { start, end } = validate(req.query, interval);
+  res.status(200).send(await getLeaderboard(user, start, end));
 });

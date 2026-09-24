@@ -5,6 +5,7 @@ import { checkBlacklistConsistency, connect } from "../database";
 import { fixRunningImportsAtStart } from "../database/queries/importer";
 import { dbLoop } from "../spotify/looper";
 import { get, getWithDefault } from "../tools/env";
+import { genresLoop } from "../tools/genres";
 import { logger } from "../tools/logger";
 import { loadSpotifyApp } from "../tools/oauth/spotifyApp";
 
@@ -58,6 +59,7 @@ export function startServer() {
         );
       }
       dbLoop().catch(logger.error);
+      genresLoop().catch(logger.error);
     })
     .catch(console.error);
 }

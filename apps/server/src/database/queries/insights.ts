@@ -7,16 +7,16 @@ import { User } from "../schemas/user";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const timezoneOf = (user: User) =>
+export const timezoneOf = (user: User) =>
   user.settings.timezone ?? getWithDefault("TIMEZONE", "Europe/Paris");
 
-const periodMatch = (user: User, start: Date, end: Date) => ({
+export const periodMatch = (user: User, start: Date, end: Date) => ({
   owner: user._id,
   blacklistedBy: { $exists: false },
   played_at: { $gt: start, $lt: end },
 });
 
-const dayString = (timezone: string) => ({
+export const dayString = (timezone: string) => ({
   $dateToString: { format: "%Y-%m-%d", date: "$played_at", timezone },
 });
 
@@ -39,10 +39,10 @@ const lightAlbum = (album: any) =>
     album_type: album.album_type,
   };
 
-const lightArtist = (artist: any) =>
+export const lightArtist = (artist: any) =>
   artist && { id: artist.id, name: artist.name, images: artist.images };
 
-async function tracksWithAlbumAndArtist(trackIds: string[]) {
+export async function tracksWithAlbumAndArtist(trackIds: string[]) {
   const tracks = await TrackModel.find({ id: { $in: trackIds } }).lean();
   const albums = await AlbumModel.find({
     id: { $in: tracks.map((t) => t.album) },
@@ -65,7 +65,7 @@ async function tracksWithAlbumAndArtist(trackIds: string[]) {
 }
 
 // Consecutive days in a sorted list of "YYYY-MM-DD"
-function computeStreaks(days: string[], end: Date, timezone: string) {
+export function computeStreaks(days: string[], end: Date, timezone: string) {
   let longest = {
     days: 0,
     start: null as string | null,

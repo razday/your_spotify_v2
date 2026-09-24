@@ -13,6 +13,14 @@ This is a fork of [Yooooomi/your_spotify](https://github.com/Yooooomi/your_spoti
 
 ## What's different from the original
 
+- **A brand new interface** built with [shadcn/ui](https://ui.shadcn.com) and Tailwind: collapsible sidebar, Ctrl+K search, light/dark/system theme, period picker with custom ranges kept in the URL (every view can be shared), mobile friendly.
+- **Many new stats**:
+  - Overview with KPIs compared to the previous period, listening trend and your #1 artist
+  - **Recap**: a yearly "wrapped" of your top artists, songs, album, biggest day, streaks and more
+  - **Taste**: your estimated **musical age**, the release years and decades you listen to (with the anthem of each year), nostalgia and freshness, formats, explicit content, track lengths
+  - **Habits**: listening personality (night owl, weekend warrior, explorer...), GitHub like listening calendar, weekday x hour heatmap, streaks
+  - **Discoveries**: new artists and tracks of the period, tracks played on repeat
+  - Artist, album and track pages with monthly, hourly and weekday charts
 - **Local accounts**: you log in with a username and a password. Logging in does not call Spotify anymore, so it doesn't use your Spotify app quota.
 - **Linked Spotify account**: after registering, you link your Spotify account once. If Spotify revokes the access (password changed, access removed...), the app asks you to link it again instead of silently stopping the sync.
 - **No more login loops**: when Spotify refuses an account (not added to a development mode app) or rate limits the app, a clear message is shown instead of a redirection loop or a request that hangs until it times out.
@@ -20,6 +28,7 @@ This is a fork of [Yooooomi/your_spotify](https://github.com/Yooooomi/your_spoti
 - **Optional limit of Spotify authorizations per IP** (`LOGIN_RATE_LIMIT_PER_MINUTE`), and brute force protection on the password login.
 - **Admin tools**: reset the password of a user from the settings, or from the command line.
 - **Docker images built by GitHub Actions** and published to the GitHub Container Registry.
+- **Works with MongoDB 4.4**, for servers whose CPU has no AVX (MongoDB 5+ needs it): no aggregation feature newer than 4.4 is used.
 
 # Table of contents
 
@@ -163,7 +172,7 @@ Usernames must now be unique (ignoring the case). If several accounts had the sa
 
 ## Forgotten password
 
-An admin can give a temporary password to any user in **Settings > Admin > Reset passwords**. An admin who forgot their own password can use the `--set-password` command above.
+An admin can give a temporary password to any user in **Settings > Admin > Users** (Password button). An admin who forgot their own password can use the `--set-password` command above.
 
 # Importing past history
 
@@ -216,7 +225,7 @@ To release a version, update the `version` of `package.json`, `apps/server/packa
 
 > How can I block new registrations?
 
-From an admin account, go to the **Settings** page and hit the **Disable new registrations** button.
+From an admin account, go to **Settings > Admin** and turn off **Open registrations**.
 
 > Songs don't seem to synchronize anymore.
 

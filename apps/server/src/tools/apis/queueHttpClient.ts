@@ -261,7 +261,9 @@ export class QueuedHttpClient {
       return;
     }
 
-    const data = await response.json();
+    // Commands like "play" answer 204 without any body
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
     queueItem.resolve({
       data,
       status: response.status,

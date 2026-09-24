@@ -27,7 +27,6 @@ import {
   getCollaborativeBestSongs,
 } from "../database/queries/collaborative";
 import { DateFormatter, intervalToDisplay } from "../tools/date";
-import { logger } from "../tools/logger";
 import {
   affinityAllowed,
   isLoggedOrGuest,
@@ -47,23 +46,15 @@ router.post("/play", logged, withHttpClient, async (req, res) => {
   const { client } = req as SpotifyRequest;
   const { id } = validate(req.body, playSchema);
 
-  try {
-    const track = await getTrackBySpotifyId(id);
-
-    if (!track) {
-      res.status(400).end();
-      return;
-    }
-    await client.playTrack(track.uri);
-    res.status(200).end();
-  } catch (e) {
-    if (e.response) {
-      logger.error(e.response.data);
-      res.status(400).send(e.response.data.error);
-      return;
-    }
-    throw e;
+  const track = await getTrackBySpotifyId(id);
+  if (!track) {
+    res.status(400).end();
+    return;
   }
+  // Spotify errors (no active device, premium required...) are translated
+  // by the error handler of the app
+  await client.playTrack(track.uri);
+  res.status(204).end();
 });
 
 const gethistorySchema = z.object({

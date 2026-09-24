@@ -34,6 +34,8 @@ export class Spotify implements Provider {
     authorizeUrl.searchParams.append("redirect_uri", this.redirectUri);
     authorizeUrl.searchParams.append("state", state);
     authorizeUrl.searchParams.append("scope", this.scopes);
+    // Always show the consent screen, so another Spotify account can be picked
+    authorizeUrl.searchParams.append("show_dialog", "true");
 
     return { url: authorizeUrl.toString(), state };
   }

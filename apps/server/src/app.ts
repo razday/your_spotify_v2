@@ -18,6 +18,7 @@ import { router as oauthRouter } from "./routes/oauth";
 import { router as searchRouter } from "./routes/search";
 import { router as spotifyRouter } from "./routes/spotify";
 import { router as trackRouter } from "./routes/track";
+import { HttpError, RateLimitedError } from "./tools/apis/queueHttpClient";
 import { get } from "./tools/env";
 import { ErrorTypeToHTTPCode, YourSpotifyError } from "./tools/errors/error";
 import { logger, LogLevelAccepts } from "./tools/logger";
@@ -130,6 +131,29 @@ app.use((error: any, req: any, res: any, next: any) => {
   logger.error(error);
   if (error instanceof YourSpotifyError) {
     return res.status(ErrorTypeToHTTPCode[error.type]).send(error);
+  }
+  if (error instanceof RateLimitedError) {
+    return res
+      .status(429)
+      .send({
+        code: "SPOTIFY_RATE_LIMITED",
+        retryAfter: Math.ceil(error.retryAfterMs / 1000),
+      });
+  }
+  // Errors answered by Spotify: tell the client why instead of a bare 500
+  if (error instanceof HttpError) {
+    if (error.status === 403 && error.body.includes("scope")) {
+      return res.status(409).send({ code: "SPOTIFY_SCOPE_MISSING" });
+    }
+    let reason: string | undefined;
+    try {
+      reason = JSON.parse(error.body)?.error?.reason;
+    } catch {
+      // Not JSON
+    }
+    return res
+      .status(error.status === 401 ? 409 : 502)
+      .send({ code: "SPOTIFY_ERROR", status: error.status, reason });
   }
   return res.status(500).send(error);
 });

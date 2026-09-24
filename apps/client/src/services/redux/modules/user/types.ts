@@ -1,9 +1,20 @@
 import { Interval } from "../../../intervals";
 
 export type DarkModeType = "light" | "dark" | "follow";
+
+export interface SpotifyAccount {
+  displayName: string | null;
+  email: string | null;
+  product: string | null;
+}
+
 export interface User {
   username: string;
   admin: boolean;
+  hasPassword: boolean;
+  spotifyId: string | null;
+  spotifyAccount: SpotifyAccount | null;
+  spotifyLinkExpired: boolean;
   _id: string;
   id: string;
   expiresIn: number;

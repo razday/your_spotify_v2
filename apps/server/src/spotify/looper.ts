@@ -6,6 +6,7 @@ import { RecentlyPlayedTrack } from "../database/schemas/track";
 import { User } from "../database/schemas/user";
 import { HttpError } from "../tools/apis/queueHttpClient";
 import { SpotifyAPI } from "../tools/apis/spotifyApi";
+import { SpotifyNotLinkedError } from "../tools/errors/spotify";
 import { logger } from "../tools/logger";
 import { retryPromise, wait } from "../tools/misc";
 import { getTracksAlbumsArtists, storeIterationOfLoop } from "./dbTools";
@@ -13,14 +14,13 @@ import { getTracksAlbumsArtists, storeIterationOfLoop } from "./dbTools";
 const RETRY = 10;
 
 const loop = async (user: User) => {
-  logger.info(`[${user.username}]: refreshing...`);
-
-  if (!user.accessToken) {
-    logger.error(
-      `User ${user.username} has not access token, please relog to Spotify`,
-    );
+  // Nothing to sync until the user links (again) their Spotify account
+  if (!user.spotifyId || user.spotifyLinkExpired || !user.refreshToken) {
+    logger.debug(`[${user.username}]: no linked Spotify account, skipping`);
     return;
   }
+
+  logger.info(`[${user.username}]: refreshing...`);
 
   const url = `/me/player/recently-played?after=${
     user.lastTimestamp - 1000 * 60 * 60 * 2
@@ -110,6 +110,10 @@ export const dbLoop = async () => {
           try {
             await loop(us);
           } catch (error) {
+            if (error instanceof SpotifyNotLinkedError) {
+              logger.info(`[${us.username}]: ${error.message}`);
+              continue;
+            }
             logger.error(`[${us.username}]: Error during refresh`, error);
             if (error instanceof HttpError) {
               logger.info("Response of failed request", error.message);

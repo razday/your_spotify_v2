@@ -112,7 +112,7 @@ export default function Sider({ className, isDrawer }: SiderProps) {
         {updateAvailable && (
           <Tooltip title="An update is available">
             <a
-              href="https://github.com/Yooooomi/your_spotify/releases"
+              href="https://github.com/razday/your_spotify_v2/releases"
               target="_blank"
               rel="noreferrer">
               <Text onDark size="normal">

@@ -54,3 +54,27 @@ export const deleteUser = myAsyncThunk<void, { id: string }>(
     }
   },
 );
+
+export const adminSetPassword = myAsyncThunk<
+  void,
+  { id: string; username: string; newPassword: string }
+>("@admin/setPassword", async ({ id, username, newPassword }, tapi) => {
+  try {
+    await api.adminSetPassword(id, newPassword);
+    tapi.dispatch(
+      alertMessage({
+        level: "success",
+        message: `Password of ${username} changed`,
+      }),
+    );
+  } catch (e) {
+    console.error(e);
+    tapi.dispatch(
+      alertMessage({
+        level: "error",
+        message: `Could not change the password of ${username}`,
+      }),
+    );
+    throw e;
+  }
+});

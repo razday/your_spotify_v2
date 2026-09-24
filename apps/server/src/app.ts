@@ -9,6 +9,7 @@ import morgan from "morgan";
 import { router as indexRouter } from "./routes";
 import { router as albumRouter } from "./routes/album";
 import { router as artistRouter } from "./routes/artist";
+import { router as authRouter } from "./routes/auth";
 import { router as globalRouter } from "./routes/global";
 import { router as importRouter } from "./routes/importer";
 import { router as metricsRouter } from "./routes/metrics";
@@ -109,6 +110,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use("/", indexRouter);
+app.use("/auth", authRouter);
 app.use("/oauth", oauthRouter);
 app.use("/spotify", spotifyRouter);
 app.use("/global", globalRouter);

@@ -7,10 +7,12 @@ import {
   changeSetting,
   getAllAdmins,
   getAllUsers,
+  getUserByUsername,
   getUserFromField,
   setUserAdmin,
   setUserPublicToken,
   storeInUser,
+  userHasPassword,
 } from "../database";
 import { GithubAPI } from "../tools/apis/githubApi";
 import { getWithDefault } from "../tools/env";
@@ -25,6 +27,7 @@ import { LoggedRequest, OptionalLoggedRequest } from "../tools/types";
 import { deleteUser } from "../tools/user";
 import { Version } from "../tools/version";
 import { toBoolean, toNumber } from "../tools/zod";
+import { usernameSchema } from "./auth";
 
 export const router = Router();
 
@@ -69,7 +72,13 @@ router.post("/settings", logged, async (req, res) => {
 router.get("/me", optionalLoggedOrGuest, async (req, res) => {
   const { user } = req as OptionalLoggedRequest;
   if (user) {
-    res.status(200).send({ status: true, user });
+    res
+      .status(200)
+      .send({
+        status: true,
+        user,
+        hasPassword: await userHasPassword(user._id),
+      });
     return;
   }
   res.status(200).send({ status: false });
@@ -135,11 +144,18 @@ router.delete("/account/:id", logged, admin, async (req, res) => {
   res.status(204).end();
 });
 
-const rename = z.object({ newName: z.string().max(64).min(2) });
+const rename = z.object({ newName: usernameSchema });
 
 router.put("/rename", logged, async (req, res) => {
   const { user } = req as LoggedRequest;
   const { newName } = validate(req.body, rename);
+
+  // Usernames are used to log in, they must stay unique
+  const existing = await getUserByUsername(newName);
+  if (existing && existing._id.toString() !== user._id.toString()) {
+    res.status(409).send({ code: "USERNAME_TAKEN" });
+    return;
+  }
 
   await storeInUser("_id", user._id, { username: newName });
   res.status(204).end();

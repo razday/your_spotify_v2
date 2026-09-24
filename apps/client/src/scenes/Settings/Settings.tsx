@@ -6,8 +6,6 @@ import FullscreenCentered from "../../components/FullscreenCentered";
 import Header from "../../components/Header";
 import Masonry from "../../components/Masonry";
 import Text from "../../components/Text";
-import { api } from "../../services/apis/api";
-import { useAPI } from "../../services/hooks/hooks";
 import { selectSettings } from "../../services/redux/modules/settings/selector";
 import {
   selectIsPublic,
@@ -17,12 +15,13 @@ import { compact, conditionalEntry } from "../../services/tools";
 import AccountInfos from "./AccountInfos";
 import AllowRegistration from "./AllowRegistration";
 import BlacklistArtist from "./BlacklistArtist";
+import ChangePassword from "./ChangePassword";
 import DarkMode from "./DarkMode";
 import DeleteUser from "./DeleteUser";
 import Importer from "./Importer";
 import s from "./index.module.css";
 import PublicToken from "./PublicToken";
-import RelogToSpotify from "./RelogToSpotify";
+import ResetPassword from "./ResetPassword";
 import SetAdmin from "./SetAdmin";
 import SpotifyAccountInfos from "./SpotifyAccountInfos";
 import Timezone from "./Timezone";
@@ -32,7 +31,6 @@ import EnableAffinity from "./EnableAffinity";
 
 export default function Settings() {
   const settings = useSelector(selectSettings);
-  const sme = useAPI(api.sme);
   const user = useSelector(selectUser);
   const isPublic = useSelector(selectIsPublic);
 
@@ -84,11 +82,9 @@ export default function Settings() {
                     isPublic={isPublic}
                   />
                 )}
-                {sme && !isPublic && (
-                  <SpotifyAccountInfos spotifyAccount={sme} />
-                )}
+                {!isPublic && <ChangePassword user={user} />}
+                {!isPublic && <SpotifyAccountInfos user={user} />}
                 <DarkMode />
-                {!isPublic && <RelogToSpotify />}
                 {!isPublic && <Importer />}
                 {!isPublic && <PublicToken />}
               </Masonry>
@@ -99,6 +95,7 @@ export default function Settings() {
             element={
               <Masonry>
                 {user.admin && !isPublic && <SetAdmin />}
+                {user.admin && !isPublic && <ResetPassword />}
                 {user.admin && !isPublic && <DeleteUser />}
                 {user.admin && !isPublic && (
                   <AllowRegistration settings={settings} />

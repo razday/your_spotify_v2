@@ -16,7 +16,7 @@ export const checkLogged = myAsyncThunk<User | null, void>(
         } else {
           DateFormatter.setCurrentUsedDateFormat(data.user.settings.dateFormat);
         }
-        return data.user;
+        return { ...data.user, hasPassword: data.hasPassword };
       } else {
         return null;
       }
@@ -38,12 +38,63 @@ export const changeUsername = myAsyncThunk<void, string>(
           message: `Successfully renamed to ${newName}`,
         }),
       );
+    } catch (e: any) {
+      console.error(e);
+      tapi.dispatch(
+        alertMessage({
+          level: "error",
+          message:
+            e?.response?.data?.code === "USERNAME_TAKEN"
+              ? `The username ${newName} is already taken`
+              : `Could not rename to ${newName}`,
+        }),
+      );
+      throw e;
+    }
+  },
+);
+
+export const changePassword = myAsyncThunk<
+  void,
+  { newPassword: string; currentPassword?: string }
+>("@user/change-password", async (payload, tapi) => {
+  try {
+    await api.changePassword(payload.newPassword, payload.currentPassword);
+    tapi.dispatch(
+      alertMessage({ level: "success", message: "Password changed" }),
+    );
+  } catch (e: any) {
+    console.error(e);
+    tapi.dispatch(
+      alertMessage({
+        level: "error",
+        message:
+          e?.response?.data?.code === "WRONG_PASSWORD"
+            ? "The current password is wrong"
+            : "Could not change the password",
+      }),
+    );
+    throw e;
+  }
+});
+
+export const unlinkSpotify = myAsyncThunk<void, void>(
+  "@user/unlink-spotify",
+  async (_, tapi) => {
+    try {
+      await api.unlinkSpotify();
+      tapi.dispatch(
+        alertMessage({
+          level: "success",
+          message: "Your Spotify account was unlinked",
+        }),
+      );
     } catch (e) {
       console.error(e);
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: `Could not rename to ${newName}`,
+          message: "Could not unlink your Spotify account",
         }),
       );
       throw e;

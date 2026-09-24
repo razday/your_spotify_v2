@@ -52,3 +52,32 @@
 .check {
   padding: 0px !important;
 }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.submit {
+  height: 40px;
+  border-radius: 20px !important;
+  font-weight: bold !important;
+}
+
+.alternative {
+  display: block;
+  margin-top: 16px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}

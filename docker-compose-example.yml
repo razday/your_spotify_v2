@@ -1,6 +1,6 @@
 services:
   server:
-    image: yooooomi/your_spotify_server
+    image: ghcr.io/razday/your_spotify_v2_server:latest
     restart: always
     ports:
       - "8080:8080"
@@ -13,6 +13,9 @@ services:
       CLIENT_ENDPOINT: http://127.0.0.1:3000
       SPOTIFY_PUBLIC: __your_spotify_client_id__
       SPOTIFY_SECRET: __your_spotify_secret__
+      # Recommended behind a reverse proxy (see README)
+      # TRUST_PROXY: 1
+      # LOGIN_RATE_LIMIT_PER_MINUTE: 3
 
   mongo:
     container_name: mongo
@@ -22,7 +25,7 @@ services:
       - ./your_spotify_db:/data/db
 
   web:
-    image: yooooomi/your_spotify_client
+    image: ghcr.io/razday/your_spotify_v2_client:latest
     restart: always
     ports:
       - "3000:3000"

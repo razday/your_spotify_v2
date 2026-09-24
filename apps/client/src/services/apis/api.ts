@@ -29,7 +29,12 @@ const axios = Axios.create({
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    // A wrong password on the login form is not an expired session
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      error.config?.url !== "/auth/login"
+    ) {
       window.location.pathname = "/login";
     }
     return Promise.reject(error);
@@ -145,7 +150,20 @@ export const api = {
   spotify: () => get("/oauth/spotify"),
   logout: () => axios.post("/logout"),
 
-  me: () => get<{ status: true; user: User } | { status: false }>("/me"),
+  me: () =>
+    get<
+      | { status: true; user: User; hasPassword: boolean }
+      | { status: false }
+    >("/me"),
+  login: (username: string, password: string, remember: boolean) =>
+    axios.post("/auth/login", { username, password, remember }),
+  register: (username: string, password: string, remember: boolean) =>
+    axios.post("/auth/register", { username, password, remember }),
+  changePassword: (newPassword: string, currentPassword?: string) =>
+    axios.put("/auth/password", { currentPassword, newPassword }),
+  adminSetPassword: (id: string, newPassword: string) =>
+    axios.put(`/auth/password/${id}`, { newPassword }),
+  unlinkSpotify: () => axios.delete("/auth/spotify"),
   sme: () => get<SpotifyMe>("/oauth/spotify/me"),
   globalPreferences: () => get<GlobalPreferences>("/global/preferences"),
   rename: (newName: string) => put("/rename", { newName }),

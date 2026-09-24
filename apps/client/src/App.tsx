@@ -8,6 +8,7 @@ import Message from "./components/Message";
 import PrivateRoute from "./components/PrivateRoute";
 import Wrapper from "./components/Wrapper";
 import Login from "./scenes/Account/Login";
+import Register from "./scenes/Account/Register";
 import AllStats from "./scenes/AllStats";
 import ArtistStats from "./scenes/ArtistStats";
 import Home from "./scenes/Home";
@@ -84,6 +85,7 @@ function App() {
                 />
                 <Route path="logout" element={<Logout />} />
                 <Route path="login" element={<Login />} />
+                <Route path="register" element={<Register />} />
                 <Route
                   path="/registrations-disabled"
                   element={<RegistrationsDisabled />}

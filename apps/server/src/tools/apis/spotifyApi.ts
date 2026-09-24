@@ -1,9 +1,14 @@
 import { Types } from "mongoose";
 
-import { getUserFromField, storeInUser } from "../../database";
+import {
+  getUserFromField,
+  markSpotifyLinkExpired,
+  storeInUser,
+} from "../../database";
 import { SpotifyAlbum } from "../../database/schemas/album";
 import { SpotifyArtist } from "../../database/schemas/artist";
 import { SpotifyTrack } from "../../database/schemas/track";
+import { SpotifyNotLinkedError } from "../errors/spotify";
 import { logger } from "../logger";
 import { chunk } from "../misc";
 import { spotifyProvider } from "../oauth/Provider";
@@ -12,6 +17,8 @@ import { HttpError } from "./queueHttpClient";
 export interface SpotifyMe {
   id: string;
   display_name: string;
+  email?: string;
+  product?: string;
 }
 
 interface SpotifyPlaylist {
@@ -33,16 +40,35 @@ export class SpotifyAPI {
     if (!user) {
       throw new Error("User not found");
     }
-    if (!user.spotifyId) {
-      throw new Error("User has no spotify id");
+    if (!user.spotifyId || user.spotifyLinkExpired) {
+      throw new SpotifyNotLinkedError();
     }
     // Refresh the token if it expires in less than two minutes (1000ms * 120)
     if (Date.now() > user.expiresIn - 1000 * 120) {
       const token = user.refreshToken;
       if (!token) {
-        throw new Error("User has no refresh token");
+        await markSpotifyLinkExpired(user._id);
+        throw new SpotifyNotLinkedError("User has no refresh token");
       }
-      const infos = await spotifyProvider.refresh(token);
+      let infos;
+      try {
+        infos = await spotifyProvider.refresh(token);
+      } catch (e) {
+        // Spotify answers invalid_grant when the refresh token was revoked
+        // (access removed, password changed...): the user must link again
+        if (
+          e instanceof HttpError &&
+          e.status === 400 &&
+          e.body.includes("invalid_grant")
+        ) {
+          await markSpotifyLinkExpired(user._id);
+          logger.warn(
+            `[${user.username}]: Spotify authorization revoked, the user has to link Spotify again`,
+          );
+          throw new SpotifyNotLinkedError("Spotify authorization revoked");
+        }
+        throw e;
+      }
 
       await storeInUser("_id", user._id, infos);
       logger.info(`Refreshed token for ${user.username}`);

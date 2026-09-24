@@ -23,10 +23,7 @@ export class MongoDbStore {
   save = async (set: MigrationSet, fn: CallbackError) => {
     await MigrationModel.updateOne(
       {},
-      {
-        $set: { lastRun: set.lastRun },
-        $push: { migrations: { $each: set.migrations } },
-      },
+      { $set: { lastRun: set.lastRun, migrations: set.migrations } },
       { upsert: true },
     );
     return fn(null);
@@ -43,6 +40,7 @@ import { up as fix_first_listened_at } from "./migrations/1645792294982-fix_firs
 import { up as create_private_data } from "./migrations/1708973485300-create_private_data";
 import { up as add_metadata_to_infos } from "./migrations/1708973485301-add_metadata_to_infos";
 import { up as add_language_to_user } from "./migrations/1708973485302-add_language_to_user";
+import { up as local_accounts } from "./migrations/1790208000000-local_accounts";
 
 function noop() {}
 
@@ -78,6 +76,7 @@ export function runMigrations() {
           up: add_language_to_user,
           down: noop,
         },
+        "1790208000000-local_accounts.js": { up: local_accounts, down: noop },
       },
       stateStore: new MongoDbStore(),
     },

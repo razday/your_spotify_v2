@@ -11,6 +11,7 @@ import { getPrivateData } from "../database/queries/privateData";
 import { spotifyHttpClientFactory } from "./apis/queuedHttpClient.providers";
 import { USER_FACING_MAX_RETRY_AFTER_MS } from "./apis/queueHttpClient";
 import { SpotifyAPI } from "./apis/spotifyApi";
+import { AttemptLimiter } from "./attemptLimiter";
 import { get } from "./env";
 import { YourSpotifyError } from "./errors/error";
 import { logger } from "./logger";
@@ -164,11 +165,11 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-const LOGIN_RATE_LIMIT_WINDOW_MS = 60_000;
-const loginAttempts = new Map<string, number[]>();
+let spotifyAuthorizations: AttemptLimiter | undefined;
 
-// Optional limit of login attempts per client IP, so a misbehaving client or
-// someone spamming the login button can't burn the Spotify app quota.
+// Optional limit of Spotify authorizations (GET /oauth/spotify) per client
+// IP, so a misbehaving client or someone spamming the button can't burn the
+// Spotify app quota.
 export const loginRateLimit = (
   req: Request,
   res: Response,
@@ -179,38 +180,19 @@ export const loginRateLimit = (
     next();
     return;
   }
+  spotifyAuthorizations ??= new AttemptLimiter(maxAttempts, 60_000);
 
   const key = req.ip ?? "unknown";
-  const now = Date.now();
-  const recent = (loginAttempts.get(key) ?? []).filter(
-    (time) => now - time < LOGIN_RATE_LIMIT_WINDOW_MS,
-  );
-
-  if (recent.length >= maxAttempts) {
-    loginAttempts.set(key, recent);
-    const retryAfter = Math.max(
-      1,
-      Math.ceil((recent[0]! + LOGIN_RATE_LIMIT_WINDOW_MS - now) / 1000),
-    );
-    logger.warn(`Too many login attempts from ${key}`);
+  const retryAfter = spotifyAuthorizations.retryAfterSeconds(key);
+  if (retryAfter > 0) {
+    logger.warn(`Too many Spotify authorizations from ${key}`);
     const url = new URL(`${get("CLIENT_ENDPOINT")}/login`);
     url.searchParams.set("error", "too_many_attempts");
     url.searchParams.set("retry_after", retryAfter.toString());
     res.redirect(url.toString());
     return;
   }
-
-  recent.push(now);
-  loginAttempts.set(key, recent);
-
-  // Forget IPs that have not tried to log in during the last window
-  if (loginAttempts.size > 1000) {
-    for (const [ip, times] of loginAttempts) {
-      if (times.every((time) => now - time >= LOGIN_RATE_LIMIT_WINDOW_MS)) {
-        loginAttempts.delete(ip);
-      }
-    }
-  }
+  spotifyAuthorizations.record(key);
   next();
 };
 
@@ -220,6 +202,11 @@ export const withHttpClient = async (
   next: NextFunction,
 ) => {
   const { user } = req as LoggedRequest;
+
+  if (!user.spotifyId || user.spotifyLinkExpired) {
+    res.status(409).send({ code: "SPOTIFY_NOT_LINKED" });
+    return;
+  }
 
   // Answer right away instead of letting the request hang until Spotify's
   // Retry-After is over (which can be hours when the app quota is exceeded).

@@ -2,11 +2,13 @@ import { createAction, createReducer } from "@reduxjs/toolkit";
 import { api } from "../../../apis/api";
 import { presetIntervals } from "../../../intervals";
 import {
+  changePassword,
   changeUsername,
   checkLogged,
   deletePublicToken,
   generateNewPublicToken,
   setDarkMode,
+  unlinkSpotify,
 } from "./thunk";
 import { ReduxIntervalDetail, User } from "./types";
 import { intervalDetailToRedux } from "./utils";
@@ -54,6 +56,20 @@ export default createReducer(initialState, (builder) => {
   builder.addCase(changeUsername.fulfilled, (state, { meta: { arg } }) => {
     if (state.user) {
       state.user.username = arg;
+    }
+  });
+
+  builder.addCase(changePassword.fulfilled, (state) => {
+    if (state.user) {
+      state.user.hasPassword = true;
+    }
+  });
+
+  builder.addCase(unlinkSpotify.fulfilled, (state) => {
+    if (state.user) {
+      state.user.spotifyId = null;
+      state.user.spotifyAccount = null;
+      state.user.spotifyLinkExpired = false;
     }
   });
 

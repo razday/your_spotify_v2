@@ -4,7 +4,13 @@ export class Version {
   private constructor(private readonly parts: number[]) {}
 
   static from(version: string) {
-    return new Version(version.split(".").map((entry) => Number(entry)));
+    // Release tags are written "vX.Y.Z"
+    return new Version(
+      version
+        .replace(/^v/, "")
+        .split(".")
+        .map((entry) => Number(entry)),
+    );
   }
 
   static thisOne() {

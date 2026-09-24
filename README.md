@@ -30,6 +30,8 @@ This is a fork of [Yooooomi/your_spotify](https://github.com/Yooooomi/your_spoti
 - **Local accounts**: you log in with a username and a password. Logging in does not call Spotify anymore, so it doesn't use your Spotify app quota.
 - **Several Spotify accounts per user**: link all your Spotify accounts, their history is merged in the same stats. Each account shows a link to its Spotify profile and when it was last synced, and can be **untracked** (kept for its history and its link, but no longer synced).
 - **Spotify access expiry handled**: if Spotify revokes the access (password changed, access removed...), the app asks you to link the account again instead of silently stopping the sync.
+- **Spotify player in the header**: see what is playing on each of your Spotify accounts, control it (play / pause, next, previous, seek, volume, shuffle, repeat), switch device, see the queue and add tracks to it. When several accounts play at the same time, a switcher shows them all. **Play on Spotify** goes to the account playing right now, on its active device. Controls need Spotify Premium.
+- **Better playlists**: add a track to several playlists at once, see which playlists already have it, and a track is never added twice.
 - **Spotify application set from the interface**: an admin can set or change the client ID and secret in **Settings > Admin**, no need to edit the environment and restart.
 - **No more login loops**: when Spotify refuses an account (not added to a development mode app) or rate limits the app, a clear message is shown instead of a redirection loop or a request that hangs until it times out.
 - **Rate limits handled**: requests a user is waiting for fail fast with a message when Spotify asks to wait (`Retry-After`), and short `429`s are retried properly.
@@ -47,15 +49,16 @@ This is a fork of [Yooooomi/your_spotify](https://github.com/Yooooomi/your_spoti
 | ![Achievements](docs/screenshots/achievements.png) **Achievements** | ![Artist](docs/screenshots/artist.png) **Artist page** |
 | ![Top artists](docs/screenshots/top-artists.png) **Top artists** | ![History](docs/screenshots/history.png) **History** |
 
-## Known issues
+## Roadmap
 
-- [#1](https://github.com/razday/your_spotify_v2/issues/1) **Play on Spotify** stops the playback instead of playing the chosen track.
-- [#2](https://github.com/razday/your_spotify_v2/issues/2) **Add to a playlist** does not show whether the track is already in a playlist.
+What is planned is followed in [#12](https://github.com/razday/your_spotify_v2/issues/12): Spotify's official top compared to ours, the library (liked songs, like button), followed artists, complete playlists with smart playlists and custom covers, and similar artists and recommendations from open sources.
+
+Since February 2026, Spotify requires a Premium account for the owner of a development mode application, and new applications are limited to 5 users.
 
 # Table of contents
 
 - [Screenshots](#screenshots)
-- [Known issues](#known-issues)
+- [Roadmap](#roadmap)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
   - [Using docker](#using-docker-compose)

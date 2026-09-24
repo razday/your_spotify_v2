@@ -5,7 +5,8 @@ import { pluginBabel } from "@rsbuild/plugin-babel";
 export default defineConfig({
   html: { template: "./public/index.html" },
   output: { distPath: "./build" },
-  performance: { chunkSplit: { strategy: "all-in-one" }, },
+  resolve: { alias: { "@": "./src" } },
+  performance: { chunkSplit: { strategy: "all-in-one" } },
   plugins: [
     pluginReact({ fastRefresh: true }),
     pluginBabel({

@@ -4,6 +4,17 @@ import { ImporterState } from "../redux/modules/import/types";
 import { Playlist, PlaylistContext } from "../redux/modules/playlist/types";
 import { User } from "../redux/modules/user/types";
 import {
+  CalendarDay,
+  Composition,
+  Discoveries,
+  HeatmapCell,
+  ItemTimeline,
+  Overview,
+  ReleaseYear,
+  Repeat,
+  TimelineItemType,
+} from "./insights";
+import {
   Album,
   Artist,
   DateId,
@@ -173,7 +184,12 @@ export const api = {
   setGlobalPreferences: (preferences: Partial<GlobalPreferences>) =>
     post<GlobalPreferences>("/global/preferences", preferences),
   play: (id: string) => axios.post("/spotify/play", { id }),
-  getTracks: (start: Date, end: Date, number: number, offset: number) =>
+  getTracks: (
+    start: Date | undefined,
+    end: Date | undefined,
+    number: number,
+    offset: number,
+  ) =>
     get<TrackInfoWithFullArtistAlbum[]>("/spotify/gethistory", {
       number,
       offset,
@@ -415,10 +431,30 @@ export const api = {
     get<
       {
         sessionLength: number;
-        full_tracks: Record<string, Track>;
+        full_tracks: Record<
+          string,
+          Track & { full_album: Pick<Album, "id" | "name" | "images"> | null }
+        >;
         distanceToLast: { distance: { subtract: number; info: TrackInfo }[] };
       }[]
     >("/spotify/top/sessions", { start, end }),
+
+  overview: (start: Date, end: Date) =>
+    get<Overview>("/insights/overview", { start, end }),
+  heatmap: (start: Date, end: Date) =>
+    get<HeatmapCell[]>("/insights/heatmap", { start, end }),
+  calendar: (start: Date, end: Date) =>
+    get<CalendarDay[]>("/insights/calendar", { start, end }),
+  releaseYears: (start: Date, end: Date) =>
+    get<ReleaseYear[]>("/insights/release-years", { start, end }),
+  composition: (start: Date, end: Date) =>
+    get<Composition>("/insights/composition", { start, end }),
+  discoveries: (start: Date, end: Date, nb: number) =>
+    get<Discoveries>("/insights/discoveries", { start, end, nb }),
+  repeats: (start: Date, end: Date, nb: number) =>
+    get<Repeat[]>("/insights/repeats", { start, end, nb }),
+  itemTimeline: (type: TimelineItemType, id: string) =>
+    get<ItemTimeline>("/insights/item-timeline", { type, id }),
 };
 
 export const DEFAULT_ITEMS_TO_LOAD = 20;

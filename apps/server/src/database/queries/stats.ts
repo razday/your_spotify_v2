@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 
 import { Timesplit } from "../../tools/types";
-import { InfosModel, TrackModel } from "../Models";
+import { AlbumModel, InfosModel, TrackModel } from "../Models";
 import { User } from "../schemas/user";
 import {
   basicMatch,
@@ -647,7 +647,17 @@ export const getLongestListeningSession = async (
     ...new Set(longest.flatMap((s) => s.items.map((i) => i.info.id))),
   ];
   const tracks = await TrackModel.find({ id: { $in: trackIds } }).lean();
-  const tracksById = new Map(tracks.map((track) => [track.id, track]));
+  const albums = await AlbumModel.find(
+    { id: { $in: tracks.map((track) => track.album) } },
+    { id: 1, name: 1, images: 1 },
+  ).lean();
+  const albumsById = new Map(albums.map((album) => [album.id, album]));
+  const tracksById = new Map(
+    tracks.map((track) => [
+      track.id,
+      { ...track, full_album: albumsById.get(track.album) ?? null },
+    ]),
+  );
 
   return longest.map((session) => ({
     _id: new Types.ObjectId(userId),

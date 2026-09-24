@@ -29,4 +29,4 @@ export interface FullPrivacyImporterState extends BaseImporterState {
   metadata: string[];
 }
 
-export type ImporterState = PrivacyImporterState;
+export type ImporterState = PrivacyImporterState | FullPrivacyImporterState;

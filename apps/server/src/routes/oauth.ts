@@ -20,6 +20,7 @@ import { get, getWithDefault } from "../tools/env";
 import { logger } from "../tools/logger";
 import {
   logged,
+  loginRateLimit,
   validate,
   withGlobalPreferences,
   withHttpClient,
@@ -45,7 +46,7 @@ const OAUTH_COOKIE_NAME = "oauth";
 const spotifyCallbackOAuthCookie = z.object({ state: z.string() });
 type OAuthCookie = z.infer<typeof spotifyCallbackOAuthCookie>;
 
-router.get("/spotify", async (req, res) => {
+router.get("/spotify", loginRateLimit, async (req, res) => {
   const isOffline = get("OFFLINE_DEV_ID");
   if (isOffline) {
     const privateData = await getPrivateData();

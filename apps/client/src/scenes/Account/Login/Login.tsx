@@ -32,6 +32,10 @@ function getLoginErrorMessage(error: string, retryAfter: string | null) {
         ? `Spotify is temporarily limiting requests from this instance. Please try again in about ${formatDuration(seconds)}.`
         : "Spotify is temporarily limiting requests from this instance. Please try again later.";
     }
+    case "too_many_attempts": {
+      const seconds = Math.max(1, Number(retryAfter) || 60);
+      return `Too many login attempts. Please try again in ${seconds} second${seconds > 1 ? "s" : ""}.`;
+    }
     default:
       return "Logging in with Spotify failed. Please try again later.";
   }

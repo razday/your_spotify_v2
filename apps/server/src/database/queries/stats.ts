@@ -1,5 +1,7 @@
+import { Types } from "mongoose";
+
 import { Timesplit } from "../../tools/types";
-import { InfosModel } from "../Models";
+import { InfosModel, TrackModel } from "../Models";
 import { User } from "../schemas/user";
 import {
   basicMatch,
@@ -580,109 +582,83 @@ export const getLongestListeningSession = async (
   end: Date,
 ) => {
   const sessionBreakThreshold = 10 * 60 * 1000;
+  const maxSessions = 5;
 
-  // Sessionize by gap-detection: pull each row's previous played_at/durationMs
-  // via $shift, flag rows whose gap exceeds the threshold as session starts,
-  // then cumulative-sum the flags to assign a session id. This replaces an
-  // earlier $reduce + $concatArrays implementation that was O(N²) in the
-  // number of plays.
-  const longestSessions = await InfosModel.aggregate([
-    ...basicMatch(userId, start, end),
-    { $sort: { played_at: 1 } },
-    {
-      $setWindowFields: {
-        partitionBy: "$owner",
-        sortBy: { played_at: 1 },
-        output: {
-          _prevPlayedAt: { $shift: { output: "$played_at", by: -1 } },
-          _prevDurationMs: { $shift: { output: "$durationMs", by: -1 } },
-        },
-      },
-    },
-    {
-      $addFields: {
-        subtract: {
-          $cond: [
-            { $ifNull: ["$_prevPlayedAt", false] },
-            {
-              $subtract: [
-                "$played_at",
-                { $add: ["$_prevPlayedAt", "$_prevDurationMs"] },
-              ],
-            },
-            sessionBreakThreshold + 1,
-          ],
-        },
-      },
-    },
-    {
-      $setWindowFields: {
-        partitionBy: "$owner",
-        sortBy: { played_at: 1 },
-        output: {
-          _sessionId: {
-            $sum: {
-              $cond: [{ $gt: ["$subtract", sessionBreakThreshold] }, 1, 0],
-            },
-            window: { documents: ["unbounded", "current"] },
-          },
-        },
-      },
-    },
-    {
-      $group: {
-        _id: { owner: "$owner", sessionId: "$_sessionId" },
-        distance: {
-          $push: {
-            subtract: "$subtract",
-            info: {
-              _id: "$_id",
-              owner: "$owner",
-              id: "$id",
-              albumId: "$albumId",
-              primaryArtistId: "$primaryArtistId",
-              artistIds: "$artistIds",
-              durationMs: "$durationMs",
-              played_at: "$played_at",
-              blacklistedBy: "$blacklistedBy",
-            },
-          },
-        },
-        firstPlayedAt: { $min: "$played_at" },
-        lastPlayedAt: { $max: "$played_at" },
-      },
-    },
-    {
-      $addFields: {
-        sessionLength: { $subtract: ["$lastPlayedAt", "$firstPlayedAt"] },
-      },
-    },
-    { $sort: { sessionLength: -1 } },
-    { $limit: 5 },
-    {
-      $project: {
-        _id: "$_id.owner",
-        sessionLength: 1,
-        distanceToLast: { distance: "$distance" },
-      },
-    },
-    {
-      $lookup: {
-        from: "tracks",
-        localField: "distanceToLast.distance.info.id",
-        foreignField: "id",
-        as: "full_tracks",
-      },
-    },
-  ]);
+  type SessionItem = { subtract: number; info: any };
+  type Session = { items: SessionItem[]; first: number; last: number };
 
-  longestSessions.forEach((longestSession) => {
-    longestSession.full_tracks = Object.fromEntries(
-      longestSession.full_tracks.map((track: any) => [track.id, track]),
-    );
-  });
+  // Sessionize by gap-detection in a single pass over the plays sorted by
+  // date: a play starts a new session when it begins more than the threshold
+  // after the end of the previous one. Done here rather than with
+  // $setWindowFields so it works on MongoDB < 5.0 (CPUs without AVX cannot
+  // run newer versions). Only the longest sessions are kept in memory.
+  const longest: Session[] = [];
+  const keep = (session: Session | undefined) => {
+    if (!session) {
+      return;
+    }
+    longest.push(session);
+    longest.sort((a, b) => b.last - b.first - (a.last - a.first));
+    if (longest.length > maxSessions) {
+      longest.pop();
+    }
+  };
 
-  return longestSessions;
+  const cursor = InfosModel.find(
+    {
+      owner: new Types.ObjectId(userId),
+      blacklistedBy: { $exists: false },
+      played_at: { $gt: start, $lt: end },
+    },
+    {
+      owner: 1,
+      id: 1,
+      albumId: 1,
+      primaryArtistId: 1,
+      artistIds: 1,
+      durationMs: 1,
+      played_at: 1,
+      blacklistedBy: 1,
+    },
+  )
+    .sort({ played_at: 1 })
+    .lean()
+    .cursor();
+
+  let current: Session | undefined;
+  let previousEnd: number | undefined;
+  for await (const info of cursor) {
+    const playedAt = info.played_at.getTime();
+    const subtract =
+      previousEnd === undefined
+        ? sessionBreakThreshold + 1
+        : playedAt - previousEnd;
+    if (!current || subtract > sessionBreakThreshold) {
+      keep(current);
+      current = { items: [], first: playedAt, last: playedAt };
+    }
+    current.items.push({ subtract, info });
+    current.last = playedAt;
+    previousEnd = playedAt + info.durationMs;
+  }
+  keep(current);
+
+  const trackIds = [
+    ...new Set(longest.flatMap((s) => s.items.map((i) => i.info.id))),
+  ];
+  const tracks = await TrackModel.find({ id: { $in: trackIds } }).lean();
+  const tracksById = new Map(tracks.map((track) => [track.id, track]));
+
+  return longest.map((session) => ({
+    _id: new Types.ObjectId(userId),
+    sessionLength: session.last - session.first,
+    distanceToLast: { distance: session.items },
+    full_tracks: Object.fromEntries(
+      [...new Set(session.items.map((i) => i.info.id))]
+        .filter((id) => tracksById.has(id))
+        .map((id) => [id, tracksById.get(id)]),
+    ),
+  }));
 };
 
 export const getRankOf = async (

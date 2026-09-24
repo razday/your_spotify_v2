@@ -88,7 +88,7 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <Card className={cn("gap-0 py-0", className)}>
-      <CardContent className="flex flex-col gap-3 p-5">
+      <CardContent className="flex flex-col gap-2 p-4 sm:gap-3 sm:p-5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-medium text-muted-foreground">
             {label}
@@ -107,7 +107,7 @@ export function StatCard({
           <Skeleton className="h-8 w-24" />
         ) : (
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight tabular">
+            <span className="text-xl font-semibold tracking-tight tabular sm:text-2xl">
               {value}
             </span>
             {delta}

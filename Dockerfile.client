@@ -17,6 +17,8 @@ COPY apps/dev/tsconfig.json apps/dev/tsconfig.json
 COPY apps/client/package.json apps/client/package.json
 COPY apps/client/tsconfig.json apps/client/tsconfig.json
 COPY apps/client/rsbuild.config.ts apps/client/rsbuild.config.ts
+COPY apps/client/postcss.config.mjs apps/client/postcss.config.mjs
+COPY apps/client/components.json apps/client/components.json
 
 RUN CI=true pnpm install --frozen-lockfile --dangerously-allow-all-builds
 

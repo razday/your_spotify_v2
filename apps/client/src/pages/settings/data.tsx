@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/format";
+import { MessageKey, translate as t } from "@/lib/i18n";
 import { selectImportStates } from "@/services/redux/modules/import/selector";
 import {
   cleanupImport,
@@ -20,27 +21,30 @@ import { useAppDispatch } from "@/services/redux/tools";
 const METHODS = [
   {
     type: ImporterStateType.fullPrivacy,
-    title: "Extended streaming history",
-    badge: "Recommended",
-    description:
-      "Your whole history since your account was created. Request it on spotify.com/account/privacy (up to 30 days), then pick the Streaming_History_Audio_*.json files.",
+    title: "import.full",
+    badge: "import.recommended",
+    description: "import.fullDescription",
   },
   {
     type: ImporterStateType.privacy,
-    title: "Account data",
-    description:
-      "Only the last year. Request it on spotify.com/account/privacy (up to 5 days), then pick the StreamingHistory*.json files.",
+    title: "import.privacy",
+    description: "import.privacyDescription",
   },
-];
+] as const satisfies {
+  type: ImporterStateType;
+  title: MessageKey;
+  badge?: MessageKey;
+  description: MessageKey;
+}[];
 
 const STATUS: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "destructive" }
+  { label: MessageKey; variant: "default" | "secondary" | "destructive" }
 > = {
-  progress: { label: "In progress", variant: "secondary" },
-  success: { label: "Done", variant: "default" },
-  failure: { label: "Failed", variant: "destructive" },
-  "failure-removed": { label: "Failed", variant: "destructive" },
+  progress: { label: "import.status.progress", variant: "secondary" },
+  success: { label: "import.status.success", variant: "default" },
+  failure: { label: "import.status.failure", variant: "destructive" },
+  "failure-removed": { label: "import.status.failure", variant: "destructive" },
 };
 
 export function ImportCard() {
@@ -86,8 +90,8 @@ export function ImportCard() {
 
   return (
     <SectionCard
-      title="Import your past history"
-      description="Spotify only gives the last 50 plays when an account is linked. Import your data to get everything since the beginning.">
+      title={t("import.title")}
+      description={t("import.description")}>
       <div className="flex flex-col gap-4">
         <div className="grid gap-3 md:grid-cols-2">
           {METHODS.map((method) => (
@@ -95,13 +99,13 @@ export function ImportCard() {
               key={method.type}
               className="flex flex-col gap-3 rounded-xl border p-4">
               <div className="flex items-center gap-2">
-                <span className="font-medium">{method.title}</span>
-                {method.badge && (
-                  <Badge variant="secondary">{method.badge}</Badge>
+                <span className="font-medium">{t(method.title)}</span>
+                {"badge" in method && (
+                  <Badge variant="secondary">{t(method.badge)}</Badge>
                 )}
               </div>
               <p className="flex-1 text-xs text-muted-foreground">
-                {method.description}
+                {t(method.description)}
               </p>
               <input
                 ref={(el) => {
@@ -123,14 +127,14 @@ export function ImportCard() {
                 ) : (
                   <FileUp />
                 )}
-                Choose files
+                {t("import.choose")}
               </Button>
             </div>
           ))}
         </div>
         {imports && imports.length > 0 && (
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">Your imports</p>
+            <p className="text-sm font-medium">{t("import.yours")}</p>
             {imports.map((item) => {
               const status = STATUS[item.status] ?? STATUS.progress!;
               const percent =
@@ -141,11 +145,11 @@ export function ImportCard() {
                   className="flex flex-col gap-2 rounded-lg border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <Badge variant={status.variant}>{status.label}</Badge>
+                      <Badge variant={status.variant}>{t(status.label)}</Badge>
                       <span className="text-muted-foreground">
                         {item.type === ImporterStateType.fullPrivacy
-                          ? "Extended history"
-                          : "Account data"}{" "}
+                          ? t("import.extended")
+                          : t("import.privacy")}{" "}
                         · {formatDate(item.createdAt, "PPp")}
                       </span>
                     </div>
@@ -162,7 +166,7 @@ export function ImportCard() {
                             ).catch(() => {})
                           }>
                           <RotateCcw />
-                          Retry
+                          {t("import.retry")}
                         </Button>
                         <Button
                           variant="ghost"
@@ -171,7 +175,7 @@ export function ImportCard() {
                             dispatch(cleanupImport(item._id)).catch(() => {})
                           }>
                           <Trash2 />
-                          Clean
+                          {t("import.clean")}
                         </Button>
                       </div>
                     )}

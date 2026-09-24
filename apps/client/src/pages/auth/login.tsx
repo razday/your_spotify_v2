@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { translate as t } from "@/lib/i18n";
 import { api } from "@/services/apis/api";
 import {
   getAuthErrorMessage,
@@ -65,10 +66,10 @@ export default function LoginPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome back
+            {t("auth.welcomeBack")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Log in to see your listening stats.
+            {t("auth.loginSubtitle")}
           </p>
         </div>
         {error && (
@@ -79,7 +80,7 @@ export default function LoginPage() {
         )}
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t("auth.username")}</Label>
             <Input
               id="username"
               autoComplete="username"
@@ -90,7 +91,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("auth.password")}</Label>
             <Input
               id="password"
               type="password"
@@ -107,30 +108,30 @@ export default function LoginPage() {
               onCheckedChange={(value) => setRemember(value === true)}
             />
             <Label htmlFor="remember" className="font-normal">
-              Keep me logged in for 30 days
+              {t("auth.remember")}
             </Label>
           </div>
           <Button type="submit" disabled={loading} className="w-full">
             {loading && <Loader2 className="animate-spin" />}
-            Log in
+            {t("auth.login")}
           </Button>
         </form>
         {settings?.allowRegistrations && (
           <p className="text-center text-sm text-muted-foreground">
-            No account yet?{" "}
+            {t("auth.noAccount")}{" "}
             <Link
               to="/register"
               className="font-medium text-primary underline-offset-4 hover:underline">
-              Create an account
+              {t("auth.createAccount")}
             </Link>
           </p>
         )}
         <p className="text-center text-xs text-muted-foreground">
-          Account created before passwords existed?{" "}
+          {t("auth.legacy")}{" "}
           <a href={getSpotifyLogUrl()} className="underline underline-offset-4">
-            Log in with Spotify
+            {t("auth.legacyLink")}
           </a>{" "}
-          once, then set a password in the settings.
+          {t("auth.legacyEnd")}
         </p>
       </div>
     </AuthShell>

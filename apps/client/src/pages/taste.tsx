@@ -1,4 +1,4 @@
-import { Cake, History, Palette, Sparkles, Users } from "lucide-react";
+import { Cake, History, Palette, Sparkles, Tags, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { BarList } from "@/components/charts/bar-list";
@@ -19,17 +19,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatNumber, formatPercent, pluralize } from "@/lib/format";
+import {
+  formatDecimal,
+  formatNumber,
+  formatPercent,
+  pluralize,
+} from "@/lib/format";
+import { MessageKey, translate as t } from "@/lib/i18n";
 import { usePeriod, usePeriodSearch } from "@/lib/period";
-import { useComposition, useFeatRatio, useReleaseYears } from "@/lib/queries";
+import {
+  useComposition,
+  useFeatRatio,
+  useGenres,
+  useReleaseYears,
+} from "@/lib/queries";
 import { summarizeTaste, tasteHeadline } from "@/lib/taste";
-
-const ALBUM_TYPE_LABELS: Record<string, string> = {
-  album: "Albums",
-  single: "Singles & EPs",
-  compilation: "Compilations",
-  unknown: "Unknown",
-};
 
 const SLICE_COLORS = [
   "var(--chart-1)",
@@ -39,24 +43,36 @@ const SLICE_COLORS = [
   "var(--chart-5)",
 ];
 
+const formatLabel = (type: string) =>
+  ["album", "single", "compilation"].includes(type)
+    ? t(`taste.format.${type}` as MessageKey)
+    : t("taste.format.unknown");
+
+const capitalize = (text: string) =>
+  text.charAt(0).toUpperCase() + text.slice(1);
+
 export default function TastePage() {
   const { period } = usePeriod();
   const periodSearch = usePeriodSearch();
   const years = useReleaseYears(period);
   const composition = useComposition(period);
   const feat = useFeatRatio(period);
+  const genres = useGenres(period, 12);
 
   const summary = years.data ? summarizeTaste(years.data) : null;
   const topYears = [...(years.data ?? [])]
     .sort((a, b) => b.plays - a.plays)
     .slice(0, 8);
   const featAverage = feat.data?.[0]?.average;
+  const g = genres.data;
+  const genresCoverage =
+    g && g.totalPlays > 0 ? g.coveredPlays / g.totalPlays : 0;
 
   return (
     <>
       <PageHeader
-        title="Taste"
-        description={`Your musical age, eras and style · ${period.label}`}
+        title={t("taste.title")}
+        description={`${t("taste.description")} · ${period.label}`}
         icon={<Palette />}
       />
 
@@ -70,7 +86,7 @@ export default function TastePage() {
               <div className="relative flex h-full flex-col justify-between gap-8 p-6 md:p-8">
                 <div className="flex items-center gap-2 text-sm font-medium text-white/80">
                   <Cake className="size-4" />
-                  Your musical age
+                  {t("taste.musicalAge")}
                 </div>
                 {summary ? (
                   <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -80,26 +96,25 @@ export default function TastePage() {
                           {summary.musicalAge}
                         </span>
                         <span className="text-xl font-medium text-white/80">
-                          years old
+                          {t("taste.yearsOld")}
                         </span>
                       </div>
                       <p className="mt-2 text-lg font-medium">
                         {tasteHeadline(summary)}
                       </p>
                       <p className="mt-1 max-w-md text-sm text-white/75">
-                        Your taste sounds like someone born around{" "}
-                        {summary.estimatedBirthYear}: half of what you play was
-                        released in {summary.medianYear} or before.
+                        {t("taste.bornAround", {
+                          year: summary.estimatedBirthYear,
+                          median: summary.medianYear,
+                        })}
                       </p>
                     </div>
                     <Tooltip>
                       <TooltipTrigger className="w-fit rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
-                        How is it computed?
+                        {t("taste.how")}
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        We tend to love most the music released around our late
-                        teens. Your median release year minus 17 gives an
-                        estimated birth year. Just for fun!
+                        {t("taste.howDescription")}
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -110,34 +125,105 @@ export default function TastePage() {
             </Card>
             <div className="grid gap-4">
               <StatCard
-                label="Nostalgia"
+                label={t("taste.nostalgia")}
                 icon={<History />}
                 accent="chart-4"
                 loading={!summary}
                 value={summary ? formatPercent(summary.nostalgia) : ""}
-                hint="of your plays are 10+ years old"
+                hint={t("taste.nostalgiaHint")}
               />
               <StatCard
-                label="Freshness"
+                label={t("taste.freshness")}
                 icon={<Sparkles />}
                 loading={!summary}
                 value={summary ? formatPercent(summary.freshness) : ""}
-                hint="of your plays were released this year or last"
+                hint={t("taste.freshnessHint")}
               />
             </div>
           </div>
 
           <SectionCard
-            title="Release years"
+            title={t("taste.genres")}
+            description={
+              g && g.genres.length > 0
+                ? t("taste.genresDescription", {
+                    percent: Math.round(genresCoverage * 100),
+                  })
+                : undefined
+            }
+            action={<Tags className="size-4 text-muted-foreground" />}>
+            {!g ? (
+              <ListSkeleton rows={4} />
+            ) : g.genres.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("taste.genresPending")}
+              </p>
+            ) : (
+              <div className="grid gap-x-8 gap-y-1 md:grid-cols-2">
+                {g.genres.map((genre, index) => {
+                  const share =
+                    g.coveredPlays > 0 ? genre.plays / g.coveredPlays : 0;
+                  return (
+                    <div
+                      key={genre.genre}
+                      className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/60">
+                      <span className="w-5 text-sm font-semibold text-muted-foreground tabular">
+                        {index + 1}
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-sm font-medium">
+                            {capitalize(genre.genre)}
+                          </span>
+                          <span className="text-xs text-muted-foreground tabular">
+                            {formatPercent(share)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(3, share * 100)}%`,
+                              background:
+                                SLICE_COLORS[index % SLICE_COLORS.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex -space-x-2">
+                        {genre.topArtists.filter(Boolean).map((artist) => (
+                          <Link
+                            key={artist.id}
+                            to={`/artist/${artist.id}${periodSearch}`}
+                            title={artist.name}>
+                            <Cover
+                              images={artist.images}
+                              rounded
+                              className="size-7 ring-2 ring-card"
+                            />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title={t("taste.releaseYears")}
             description={
               summary
-                ? `Average release year: ${Math.round(summary.averageYear)}`
-                : "Plays per release year"
+                ? t("taste.averageYear", {
+                    year: Math.round(summary.averageYear),
+                  })
+                : t("taste.playsPerYear")
             }>
             {years.data ? (
               <BarsChart
                 className="h-64"
-                label="Plays"
+                label={t("unit.plays")}
                 valueFormatter={formatNumber}
                 data={[...years.data]
                   .sort((a, b) => a.year - b.year)
@@ -150,8 +236,8 @@ export default function TastePage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard
-              title="Top years"
-              description="The years your music comes from, and their anthem">
+              title={t("taste.topYears")}
+              description={t("taste.topYearsDescription")}>
               {years.data ? (
                 <div className="flex flex-col gap-1">
                   {topYears.map((year, index) => (
@@ -188,7 +274,7 @@ export default function TastePage() {
                         </span>
                         {index === 0 && (
                           <span className="text-xs text-primary">
-                            Your top year
+                            {t("taste.topYear")}
                           </span>
                         )}
                       </div>
@@ -200,11 +286,11 @@ export default function TastePage() {
               )}
             </SectionCard>
             <SectionCard
-              title="Decades"
+              title={t("taste.decades")}
               description={
                 summary?.topDecade
-                  ? `The ${summary.topDecade.decade}s lead your plays`
-                  : "Plays per decade"
+                  ? t("taste.decadeLeads", { decade: summary.topDecade.decade })
+                  : t("taste.playsPerDecade")
               }>
               {summary ? (
                 <BarList
@@ -224,23 +310,25 @@ export default function TastePage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <SectionCard title="Formats" description="What kind of releases">
+            <SectionCard
+              title={t("taste.formats")}
+              description={t("taste.formatsDescription")}>
               {composition.data ? (
                 <DonutChart
                   centerValue={formatNumber(
                     composition.data.albumTypes.reduce(
-                      (s, t) => s + t.plays,
+                      (sum, x) => sum + x.plays,
                       0,
                     ),
                   )}
-                  centerLabel="plays"
-                  data={composition.data.albumTypes
+                  centerLabel={t("unit.plays").toLowerCase()}
+                  data={[...composition.data.albumTypes]
                     .sort((a, b) => b.plays - a.plays)
-                    .map((t, i) => ({
-                      key: t.type,
-                      label: ALBUM_TYPE_LABELS[t.type] ?? t.type,
-                      value: t.plays,
-                      color: SLICE_COLORS[i % SLICE_COLORS.length]!,
+                    .map((type, index) => ({
+                      key: type.type,
+                      label: formatLabel(type.type),
+                      value: type.plays,
+                      color: SLICE_COLORS[index % SLICE_COLORS.length]!,
                     }))}
                 />
               ) : (
@@ -248,8 +336,8 @@ export default function TastePage() {
               )}
             </SectionCard>
             <SectionCard
-              title="Explicit content"
-              description="Parental advisory">
+              title={t("taste.explicit")}
+              description={t("taste.explicitDescription")}>
               {composition.data ? (
                 <DonutChart
                   centerValue={formatPercent(
@@ -260,17 +348,17 @@ export default function TastePage() {
                           composition.data.explicit.clean,
                       ),
                   )}
-                  centerLabel="explicit"
+                  centerLabel={t("taste.explicitLabel").toLowerCase()}
                   data={[
                     {
                       key: "explicit",
-                      label: "Explicit",
+                      label: t("taste.explicitLabel"),
                       value: composition.data.explicit.explicit,
                       color: "var(--chart-5)",
                     },
                     {
                       key: "clean",
-                      label: "Clean",
+                      label: t("taste.clean"),
                       value: composition.data.explicit.clean,
                       color: "var(--chart-2)",
                     },
@@ -281,21 +369,23 @@ export default function TastePage() {
               )}
             </SectionCard>
             <SectionCard
-              title="Track length"
+              title={t("taste.trackLength")}
               description={
                 featAverage
-                  ? `${featAverage.toFixed(2)} artists per track on average`
-                  : "How long your songs are"
+                  ? t("taste.artistsPerTrack", {
+                      value: formatDecimal(featAverage, 2),
+                    })
+                  : t("taste.trackLengthDescription")
               }
               action={<Users className="size-4 text-muted-foreground" />}>
               {composition.data ? (
                 <BarList
                   color="var(--chart-3)"
-                  items={composition.data.trackLengths.map((b) => ({
-                    key: b.bucket,
-                    label: b.bucket,
-                    value: b.plays,
-                    display: formatNumber(b.plays),
+                  items={composition.data.trackLengths.map((bucket) => ({
+                    key: bucket.bucket,
+                    label: bucket.bucket,
+                    value: bucket.plays,
+                    display: formatNumber(bucket.plays),
                   }))}
                 />
               ) : (

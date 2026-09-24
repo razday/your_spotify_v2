@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { translate as t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface DeltaProps {
@@ -29,7 +30,7 @@ export function Delta({ current, previous, className }: DeltaProps) {
           className,
         )}>
         <ArrowUpRight className="size-3.5" />
-        new
+        {t("common.new")}
       </span>
     ) : null;
   }
@@ -52,7 +53,7 @@ export function Delta({ current, previous, className }: DeltaProps) {
           {Math.abs(rounded)}%
         </span>
       </TooltipTrigger>
-      <TooltipContent>Compared to the previous period</TooltipContent>
+      <TooltipContent>{t("common.comparedPrevious")}</TooltipContent>
     </Tooltip>
   );
 }

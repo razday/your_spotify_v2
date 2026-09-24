@@ -8,6 +8,7 @@ import {
   startOfMonth,
 } from "date-fns";
 
+import { getDateLocale } from "@/lib/i18n";
 import { DateId, Timesplit } from "@/services/types";
 
 export interface SeriesPoint {
@@ -72,7 +73,7 @@ export function buildSeries<T extends { _id: DateId | null }>(
     points.push({
       key: String(cursor.getTime()),
       date: cursor,
-      label: format(cursor, label),
+      label: format(cursor, label, { locale: getDateLocale() }),
       value: 0,
       ...pointValues,
     });

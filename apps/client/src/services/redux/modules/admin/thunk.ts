@@ -1,3 +1,4 @@
+import { translate } from "../../../../lib/i18n";
 import { api } from "../../../apis/api";
 import { myAsyncThunk } from "../../tools";
 import { alertMessage } from "../message/reducer";
@@ -14,7 +15,7 @@ export const getAccounts = myAsyncThunk<AdminAccount[], void>(
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: "Could not retrieve all the registered accounts",
+          message: translate("toast.accountsLoadError"),
         }),
       );
       throw e;
@@ -32,7 +33,7 @@ export const setAdmin = myAsyncThunk<void, { id: string; status: boolean }>(
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: "Could not set this user admin status",
+          message: translate("toast.adminStatusError"),
         }),
       );
       throw e;
@@ -48,7 +49,10 @@ export const deleteUser = myAsyncThunk<void, { id: string }>(
     } catch (e) {
       console.error(e);
       tapi.dispatch(
-        alertMessage({ level: "error", message: "Could not delete this user" }),
+        alertMessage({
+          level: "error",
+          message: translate("toast.deleteUserError"),
+        }),
       );
       throw e;
     }
@@ -64,7 +68,7 @@ export const adminSetPassword = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "success",
-        message: `Password of ${username} changed`,
+        message: translate("toast.userPasswordChanged", { name: username }),
       }),
     );
   } catch (e) {
@@ -72,7 +76,7 @@ export const adminSetPassword = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "error",
-        message: `Could not change the password of ${username}`,
+        message: translate("toast.userPasswordError", { name: username }),
       }),
     );
     throw e;

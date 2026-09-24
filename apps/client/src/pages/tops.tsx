@@ -27,8 +27,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useOnVisible } from "@/hooks/use-in-view";
 import { formatDuration, formatPercent, pluralize } from "@/lib/format";
+import { MessageKey, translate as t } from "@/lib/i18n";
 import { usePeriod, usePeriodSearch } from "@/lib/period";
 import { useInfiniteTop } from "@/lib/queries";
+import { canUseSpotify } from "@/lib/spotify";
 import { cn } from "@/lib/utils";
 import { setPlaylistContext } from "@/services/redux/modules/playlist/reducer";
 import {
@@ -54,22 +56,22 @@ interface Row {
 
 const meta: Record<
   Kind,
-  { title: string; icon: ReactNode; description: string }
+  { title: MessageKey; icon: ReactNode; description: MessageKey }
 > = {
   tracks: {
-    title: "Top tracks",
+    title: "tops.tracks",
     icon: <Music2 />,
-    description: "The songs you played the most",
+    description: "tops.tracksDescription",
   },
   artists: {
-    title: "Top artists",
+    title: "tops.artists",
     icon: <MicVocal />,
-    description: "The artists you spent the most time with",
+    description: "tops.artistsDescription",
   },
   albums: {
-    title: "Top albums",
+    title: "tops.albums",
     icon: <Disc3 />,
-    description: "The records on repeat",
+    description: "tops.albumsDescription",
   },
 };
 
@@ -204,18 +206,13 @@ export function TopPage({ kind }: { kind: Kind }) {
 
   const rounded = kind === "artists";
   const topShare = rows[0] ? rows[0].plays : 1;
-  const canPlaylist =
-    kind === "tracks" &&
-    user &&
-    !isPublic &&
-    user.spotifyId &&
-    !user.spotifyLinkExpired;
+  const canPlaylist = kind === "tracks" && canUseSpotify(user, isPublic);
 
   return (
     <>
       <PageHeader
-        title={meta[kind].title}
-        description={`${meta[kind].description} · ${period.label}`}
+        title={t(meta[kind].title)}
+        description={`${t(meta[kind].description)} · ${period.label}`}
         icon={meta[kind].icon}
         actions={
           canPlaylist && rows.length > 0 ? (
@@ -235,7 +232,7 @@ export function TopPage({ kind }: { kind: Kind }) {
                 )
               }>
               <ListPlus />
-              Save top 50 as playlist
+              {t("playlist.saveTop")}
             </Button>
           ) : undefined
         }
@@ -251,8 +248,10 @@ export function TopPage({ kind }: { kind: Kind }) {
         <>
           <Podium rows={rows} rounded={rounded} />
           <SectionCard
-            title="Full ranking"
-            description={`${pluralize(rows[0]?.totalPlays ?? 0, "play")} in total`}
+            title={t("tops.ranking")}
+            description={t("tops.total", {
+              plays: pluralize(rows[0]?.totalPlays ?? 0, "play"),
+            })}
             contentClassName="px-2 sm:px-4">
             <div className="flex flex-col">
               {rows.map((row, index) => (

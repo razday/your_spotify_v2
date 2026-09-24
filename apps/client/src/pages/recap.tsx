@@ -1,13 +1,15 @@
-import { endOfYear, format, startOfYear } from "date-fns";
-import { Loader2, Sparkles } from "lucide-react";
-import { ReactNode } from "react";
+import { endOfYear, startOfYear } from "date-fns";
+import { Loader2, Share2, Sparkles } from "lucide-react";
+import { ReactNode, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { BarsChart } from "@/components/charts/bars-chart";
 import { Cover } from "@/components/stats/cover";
 import { PageHeader } from "@/components/stats/page-header";
 import { EmptyState } from "@/components/stats/section-card";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -25,8 +27,10 @@ import {
   pickImage,
   pluralize,
 } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { listeningProfile } from "@/lib/profile";
 import {
+  useGenres,
   useHeatmap,
   useOverview,
   useReleaseYears,
@@ -35,6 +39,7 @@ import {
   useTopArtists,
   useTopTracks,
 } from "@/lib/queries";
+import { renderRecapImage, shareRecapImage } from "@/lib/recap-image";
 import { summarizeTaste } from "@/lib/taste";
 import { cn } from "@/lib/utils";
 import { selectUser } from "@/services/redux/modules/user/selector";
@@ -67,9 +72,13 @@ function Kicker({ children }: { children: ReactNode }) {
   );
 }
 
+const capitalize = (text: string) =>
+  text.charAt(0).toUpperCase() + text.slice(1);
+
 export default function RecapPage() {
   const user = useSelector(selectUser);
   const [params, setParams] = useSearchParams();
+  const [sharing, setSharing] = useState(false);
   const currentYear = new Date().getFullYear();
   const firstYear = user?.firstListenedAt
     ? new Date(user.firstListenedAt).getFullYear()
@@ -97,6 +106,7 @@ export default function RecapPage() {
   const releaseYears = useReleaseYears(range);
   const heatmap = useHeatmap(range);
   const months = useTimePer(range, Timesplit.month);
+  const genres = useGenres(range, 1);
 
   const o = overview.data;
   const topArtist = artists.data?.[0];
@@ -105,13 +115,15 @@ export default function RecapPage() {
   const topReleaseYear = [...(releaseYears.data ?? [])].sort(
     (a, b) => b.plays - a.plays,
   )[0];
+  const topGenre = genres.data?.genres[0]?.genre ?? null;
   const traits = listeningProfile(heatmap.data ?? [], o);
 
   const monthData = Array.from({ length: 12 }, (_, month) => {
     const row = months.data?.find((m) => m._id?.month === month + 1);
+    const date = new Date(year, month, 1);
     return {
-      label: format(new Date(year, month, 1), "MMM"),
-      tooltipLabel: format(new Date(year, month, 1), "MMMM yyyy"),
+      label: formatDate(date, "MMM"),
+      tooltipLabel: capitalize(formatDate(date, "MMMM yyyy")),
       value: Math.round((row?.count ?? 0) / 60000),
     };
   });
@@ -120,34 +132,79 @@ export default function RecapPage() {
     monthData[0]!,
   );
 
-  const yearPicker = (
-    <Select
-      value={year.toString()}
-      onValueChange={(value) => {
-        const next = new URLSearchParams(params);
-        next.set("year", value);
-        setParams(next);
-      }}>
-      <SelectTrigger className="h-8 w-28">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {years.map((y) => (
-          <SelectItem key={y} value={y.toString()}>
-            {y}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+  const share = async () => {
+    if (!o) return;
+    setSharing(true);
+    try {
+      const blob = await renderRecapImage({
+        year,
+        minutes: formatMinutes(o.durationMs),
+        topArtist: topArtist
+          ? {
+              name: topArtist.artist.name,
+              image: pickImage(topArtist.artist.images, 400),
+            }
+          : null,
+        topTracks: (tracks.data ?? []).map((item) => ({
+          name: item.track.name,
+          artist: item.artist.name,
+          image: pickImage(item.album.images, 200),
+        })),
+        musicalAge: taste?.musicalAge ?? null,
+        topGenre,
+      });
+      const result = await shareRecapImage(blob, year);
+      if (result === "downloaded") {
+        toast.success(t("recap.downloaded"));
+      }
+    } catch (e) {
+      if ((e as Error)?.name !== "AbortError") {
+        console.error(e);
+        toast.error(t("recap.shareFailed"));
+      }
+    }
+    setSharing(false);
+  };
+
+  const actions = (
+    <>
+      {o && o.plays > 0 && (
+        <Button
+          size="sm"
+          onClick={() => share().catch(() => {})}
+          disabled={sharing}>
+          {sharing ? <Loader2 className="animate-spin" /> : <Share2 />}
+          {t("recap.share")}
+        </Button>
+      )}
+      <Select
+        value={year.toString()}
+        onValueChange={(value) => {
+          const next = new URLSearchParams(params);
+          next.set("year", value);
+          setParams(next);
+        }}>
+        <SelectTrigger className="h-8 w-28">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {years.map((y) => (
+            <SelectItem key={y} value={y.toString()}>
+              {y}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
   );
 
   return (
     <>
       <PageHeader
-        title="Recap"
-        description="Your year in music, wrapped"
+        title={t("recap.title")}
+        description={t("recap.description")}
         icon={<Sparkles />}
-        actions={yearPicker}
+        actions={actions}
       />
 
       {!o ? (
@@ -156,24 +213,27 @@ export default function RecapPage() {
         </div>
       ) : o.plays === 0 ? (
         <EmptyState
-          title={`Nothing recorded in ${year}`}
-          description="Pick another year, or import your Spotify history from the settings."
+          title={t("recap.nothing", { year })}
+          description={t("recap.nothingHint")}
         />
       ) : (
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
           <Slide className="bg-gradient-to-br from-primary via-chart-2 to-chart-3">
-            <Kicker>Your {year} in music</Kicker>
+            <Kicker>{t("recap.inMusic", { year })}</Kicker>
             <p className="mt-6 text-6xl font-bold tracking-tighter tabular md:text-8xl">
               {formatMinutes(o.durationMs)}
             </p>
             <p className="mt-2 text-xl font-medium md:text-2xl">
-              minutes of music
+              {t("recap.minutes")}
             </p>
             <p className="mt-4 max-w-xl text-white/80">
-              That is {formatDuration(o.durationMs)} over{" "}
-              {pluralize(o.activeDays, "day")}, {formatNumber(o.plays)} plays of{" "}
-              {formatNumber(o.uniqueTracks)} different tracks by{" "}
-              {formatNumber(o.uniqueArtists)} artists.
+              {t("recap.summary", {
+                duration: formatDuration(o.durationMs),
+                days: pluralize(o.activeDays, "day"),
+                plays: formatNumber(o.plays),
+                tracks: formatNumber(o.uniqueTracks),
+                artists: formatNumber(o.uniqueArtists),
+              })}
             </p>
           </Slide>
 
@@ -189,20 +249,22 @@ export default function RecapPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" />
               <div className="relative grid gap-8 p-6 md:grid-cols-2 md:p-10">
                 <div className="flex flex-col justify-end">
-                  <Kicker>Artist of the year</Kicker>
+                  <Kicker>{t("recap.artistOfYear")}</Kicker>
                   <Link
                     to={`/artist/${topArtist.artist.id}`}
                     className="mt-3 text-4xl font-bold tracking-tight hover:underline md:text-6xl">
                     {topArtist.artist.name}
                   </Link>
                   <p className="mt-3 text-white/80">
-                    {formatDuration(topArtist.duration_ms)} together ·{" "}
-                    {pluralize(topArtist.count, "play")}
+                    {t("recap.together", {
+                      duration: formatDuration(topArtist.duration_ms),
+                    })}{" "}
+                    · {pluralize(topArtist.count, "play")}
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 rounded-2xl bg-black/35 p-4 backdrop-blur-md">
                   <p className="text-sm font-semibold text-white/70">
-                    Top 5 artists
+                    {t("recap.top5Artists")}
                   </p>
                   {artists.data?.map((item, index) => (
                     <Link
@@ -232,7 +294,7 @@ export default function RecapPage() {
 
           <div className="grid gap-6 md:grid-cols-5">
             <Slide className="bg-gradient-to-br from-chart-3 to-chart-5 md:col-span-3">
-              <Kicker>Songs of the year</Kicker>
+              <Kicker>{t("recap.songsOfYear")}</Kicker>
               <div className="mt-6 flex flex-col gap-3">
                 {tracks.data?.map((item, index) => (
                   <Link
@@ -262,7 +324,7 @@ export default function RecapPage() {
               </div>
             </Slide>
             <Slide className="bg-gradient-to-br from-chart-4 to-chart-5 md:col-span-2">
-              <Kicker>Album of the year</Kicker>
+              <Kicker>{t("recap.albumOfYear")}</Kicker>
               {topAlbum && (
                 <Link
                   to={`/album/${topAlbum.album.id}`}
@@ -288,19 +350,19 @@ export default function RecapPage() {
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <RecapNumber
-              label="New artists"
+              label={t("recap.newArtists")}
               value={formatNumber(o.newArtists)}
-              hint="discovered this year"
+              hint={t("recap.discoveredThisYear")}
             />
             <RecapNumber
-              label="Longest streak"
+              label={t("recap.longestStreak")}
               value={pluralize(o.longestStreak.days, "day")}
-              hint="in a row with music"
+              hint={t("recap.inARow")}
             />
             <RecapNumber
-              label="Biggest day"
+              label={t("recap.biggestDay")}
               value={
-                o.busiestDay ? formatDate(o.busiestDay.date, "MMM d") : "—"
+                o.busiestDay ? formatDate(o.busiestDay.date, "d MMM") : "—"
               }
               hint={
                 o.busiestDay
@@ -309,34 +371,45 @@ export default function RecapPage() {
               }
             />
             <RecapNumber
-              label="Golden hour"
+              label={t("recap.goldenHour")}
               value={o.favoriteHour !== null ? formatHour(o.favoriteHour) : "—"}
-              hint="your most musical hour"
+              hint={t("recap.goldenHourHint")}
             />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             {taste && (
               <Slide className="bg-gradient-to-br from-chart-2 to-primary">
-                <Kicker>Musical age</Kicker>
+                <Kicker>{t("recap.musicalAge")}</Kicker>
                 <p className="mt-4 text-7xl font-bold tracking-tighter tabular">
                   {taste.musicalAge}
                 </p>
-                <p className="mt-1 text-lg font-medium">years old in {year}</p>
+                <p className="mt-1 text-lg font-medium">
+                  {t("recap.yearsOldIn", { year })}
+                </p>
                 {topReleaseYear && (
                   <p className="mt-4 text-white/80">
-                    Your favorite release year was {topReleaseYear.year}
+                    {t("recap.favoriteReleaseYear", {
+                      year: topReleaseYear.year,
+                    })}
                     {topReleaseYear.top
-                      ? `, led by "${topReleaseYear.top.track.name}"`
+                      ? t("recap.ledBy", {
+                          track: topReleaseYear.top.track.name,
+                        })
                       : ""}
                     .
+                  </p>
+                )}
+                {topGenre && (
+                  <p className="mt-2 text-white/80">
+                    {t("recap.imageTopGenre")} : {capitalize(topGenre)}
                   </p>
                 )}
               </Slide>
             )}
             {traits.length > 0 && (
               <Slide className="bg-gradient-to-br from-zinc-800 to-zinc-950">
-                <Kicker>Your listening personality</Kicker>
+                <Kicker>{t("recap.personality")}</Kicker>
                 <div className="mt-6 flex flex-col gap-4">
                   {traits.slice(0, 3).map((trait) => (
                     <div key={trait.key} className="flex gap-3">
@@ -356,16 +429,16 @@ export default function RecapPage() {
 
           <Card className="gap-4 p-6">
             <div>
-              <p className="font-semibold">Month by month</p>
+              <p className="font-semibold">{t("recap.monthByMonth")}</p>
               <p className="text-sm text-muted-foreground">
                 {bestMonth.value > 0
-                  ? `${bestMonth.tooltipLabel} was your most musical month`
-                  : "Minutes per month"}
+                  ? t("recap.bestMonth", { month: bestMonth.tooltipLabel })
+                  : t("recap.minutesPerMonth")}
               </p>
             </div>
             <BarsChart
               data={monthData}
-              label="Minutes"
+              label={t("unit.minutes")}
               valueFormatter={formatNumber}
             />
           </Card>

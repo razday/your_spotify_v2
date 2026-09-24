@@ -30,6 +30,7 @@ import {
   formatTrackLength,
   pluralize,
 } from "@/lib/format";
+import { translate as tr } from "@/lib/i18n";
 import { usePeriodSearch } from "@/lib/period";
 import {
   useAlbumStats,
@@ -38,6 +39,7 @@ import {
   useItemTimeline,
   useTrackStats,
 } from "@/lib/queries";
+import { canUseSpotify } from "@/lib/spotify";
 import { TimelineItemType } from "@/services/apis/insights";
 import {
   selectIsPublic,
@@ -63,7 +65,8 @@ function StatsPills({ type, id }: { type: TimelineItemType; id: string }) {
     <>
       {rank.data && (
         <Pill highlight>
-          <Trophy />#{rank.data.index + 1} all time
+          <Trophy />
+          {tr("details.rankAllTime", { rank: rank.data.index + 1 })}
         </Pill>
       )}
       {t && (
@@ -94,7 +97,9 @@ function FirstLast({ type, id }: { type: TimelineItemType; id: string }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card className="gap-1 p-5">
-        <span className="text-sm text-muted-foreground">First listened</span>
+        <span className="text-sm text-muted-foreground">
+          {tr("details.firstListened")}
+        </span>
         <span className="text-lg font-semibold">
           {formatDate(t.first, "PPP")}
         </span>
@@ -103,7 +108,9 @@ function FirstLast({ type, id }: { type: TimelineItemType; id: string }) {
         </span>
       </Card>
       <Card className="gap-1 p-5">
-        <span className="text-sm text-muted-foreground">Last listened</span>
+        <span className="text-sm text-muted-foreground">
+          {tr("details.lastListened")}
+        </span>
         <span className="text-lg font-semibold">
           {formatDate(t.last, "PPP")}
         </span>
@@ -123,7 +130,7 @@ function SpotifyButton({ type, id }: { type: string; id: string }) {
         target="_blank"
         rel="noreferrer">
         <ExternalLink />
-        Spotify
+        {tr("common.spotify")}
       </a>
     </Button>
   );
@@ -134,8 +141,8 @@ function NeverListened({ children }: { children: ReactNode }) {
     <>
       {children}
       <EmptyState
-        title="Never listened"
-        description="This does not appear in your history yet."
+        title={tr("details.neverTitle")}
+        description={tr("details.neverDescription")}
       />
     </>
   );
@@ -159,7 +166,7 @@ export function ArtistPage() {
   return (
     <>
       <DetailHero
-        kind="Artist"
+        kind={tr("details.artist")}
         title={artist.name}
         images={artist.images}
         rounded
@@ -173,7 +180,7 @@ export function ArtistPage() {
       />
       <FirstLast type="artist" id={id} />
       <div className="grid gap-4 lg:grid-cols-5">
-        <SectionCard className="lg:col-span-3" title="Most played tracks">
+        <SectionCard className="lg:col-span-3" title={tr("details.mostPlayed")}>
           <div className="flex flex-col">
             {mostListened.map((item, index) => (
               <RankedRow
@@ -195,7 +202,7 @@ export function ArtistPage() {
             ))}
           </div>
         </SectionCard>
-        <SectionCard className="lg:col-span-2" title="Albums">
+        <SectionCard className="lg:col-span-2" title={tr("details.albums")}>
           <div className="grid grid-cols-2 gap-3">
             {albumMostListened.slice(0, 6).map((item) => (
               <Link
@@ -247,7 +254,11 @@ export function AlbumPage() {
   return (
     <>
       <DetailHero
-        kind={album.album_type === "single" ? "Single" : "Album"}
+        kind={
+          album.album_type === "single"
+            ? tr("details.single")
+            : tr("details.album")
+        }
         title={album.name}
         images={album.images}
         subtitle={
@@ -270,7 +281,7 @@ export function AlbumPage() {
       />
       <FirstLast type="album" id={id} />
       <SectionCard
-        title="Tracks you played"
+        title={tr("details.tracksPlayed")}
         description={pluralize(tracks.length, "track")}>
         {tracks.length === 0 ? (
           <ListSkeleton />
@@ -318,13 +329,16 @@ export function TrackPage() {
     return <NeverListened>{null}</NeverListened>;
   }
   const { track, artist, album, recentHistory } = stats.data;
-  const canPlay =
-    user && !isPublic && user.spotifyId && !user.spotifyLinkExpired;
+  const canPlay = canUseSpotify(user, isPublic);
 
   return (
     <>
       <DetailHero
-        kind={track.explicit ? "Track · Explicit" : "Track"}
+        kind={
+          track.explicit
+            ? `${tr("details.track")} · ${tr("details.explicit")}`
+            : tr("details.track")
+        }
         title={track.name}
         images={album.images}
         subtitle={
@@ -351,7 +365,7 @@ export function TrackPage() {
               <Button
                 onClick={() => dispatch(playTrack(track.id)).catch(() => {})}>
                 <Play />
-                Play
+                {tr("details.play")}
               </Button>
             )}
             <SpotifyButton type="track" id={id} />
@@ -360,13 +374,13 @@ export function TrackPage() {
       />
       <FirstLast type="track" id={id} />
       <ItemInsights timeline={timeline.data} />
-      <SectionCard title="Recent plays">
+      <SectionCard title={tr("details.recentPlays")}>
         <div className="flex flex-col">
           {recentHistory.map((play) => (
             <div
               key={play._id}
               className="flex items-center justify-between rounded-lg p-2 text-sm hover:bg-muted/60">
-              <span>{formatDate(play.played_at, "EEEE, PPP")}</span>
+              <span>{formatDate(play.played_at, "EEEE PPP")}</span>
               <span className="text-muted-foreground tabular">
                 {formatDate(play.played_at, "HH:mm")}
               </span>

@@ -1,4 +1,5 @@
 import { createAction, createReducer } from "@reduxjs/toolkit";
+
 import { api } from "../../../apis/api";
 import { presetIntervals } from "../../../intervals";
 import {
@@ -8,7 +9,8 @@ import {
   deletePublicToken,
   generateNewPublicToken,
   setDarkMode,
-  unlinkSpotify,
+  setLanguage,
+  updateSpotifyAccount,
 } from "./thunk";
 import { ReduxIntervalDetail, User } from "./types";
 import { intervalDetailToRedux } from "./utils";
@@ -65,11 +67,9 @@ export default createReducer(initialState, (builder) => {
     }
   });
 
-  builder.addCase(unlinkSpotify.fulfilled, (state) => {
+  builder.addCase(updateSpotifyAccount.fulfilled, (state, { payload }) => {
     if (state.user) {
-      state.user.spotifyId = null;
-      state.user.spotifyAccount = null;
-      state.user.spotifyLinkExpired = false;
+      state.user.spotifyAccounts = payload;
     }
   });
 
@@ -89,6 +89,12 @@ export default createReducer(initialState, (builder) => {
 
   builder.addCase(setDataInterval, (state, { payload }) => {
     state.intervalDetail = payload;
+  });
+
+  builder.addCase(setLanguage.pending, (state, { meta: { arg } }) => {
+    if (state.user) {
+      state.user.settings.language = arg;
+    }
   });
 
   builder.addCase(setDarkMode.pending, (state, { meta: { arg } }) => {

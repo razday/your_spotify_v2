@@ -12,15 +12,22 @@ import {
 } from "@/components/stats/section-card";
 import { Badge } from "@/components/ui/badge";
 import { useOnVisible } from "@/hooks/use-in-view";
-import { formatDuration, formatTrackLength, pluralize } from "@/lib/format";
+import {
+  formatDate,
+  formatDuration,
+  formatTrackLength,
+  pluralize,
+} from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { usePeriod, usePeriodSearch } from "@/lib/period";
 import { useHistory } from "@/lib/queries";
 import { TrackInfoWithFullArtistAlbum } from "@/services/types";
 
 function dayTitle(date: Date) {
-  if (isToday(date)) return "Today";
-  if (isYesterday(date)) return "Yesterday";
-  return format(date, "EEEE, MMMM d, yyyy");
+  if (isToday(date)) return t("history.today");
+  if (isYesterday(date)) return t("history.yesterday");
+  const label = formatDate(date, "EEEE d MMMM yyyy");
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export default function HistoryPage() {
@@ -53,12 +60,12 @@ export default function HistoryPage() {
   return (
     <>
       <PageHeader
-        title="History"
-        description={`Everything you listened to · ${period.label}`}
+        title={t("history.title")}
+        description={`${t("history.description")} · ${period.label}`}
         icon={<History />}
       />
       {query.isLoading ? (
-        <SectionCard title="Loading">
+        <SectionCard title={t("common.loading")}>
           <ListSkeleton rows={10} />
         </SectionCard>
       ) : plays.length === 0 ? (

@@ -1,23 +1,39 @@
 import { format, formatDistanceToNowStrict } from "date-fns";
 
+import {
+  getDateLocale,
+  getLanguage,
+  getNumberLocale,
+  translatePlural,
+} from "@/lib/i18n";
 import { SpotifyImage } from "@/services/types";
 
-const numberFormat = new Intl.NumberFormat();
-const compactFormat = new Intl.NumberFormat(undefined, {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+export const formatNumber = (value: number) =>
+  new Intl.NumberFormat(getNumberLocale()).format(value);
 
-export const formatNumber = (value: number) => numberFormat.format(value);
-
-export const formatCompact = (value: number) => compactFormat.format(value);
+export const formatCompact = (value: number) =>
+  new Intl.NumberFormat(getNumberLocale(), {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 
 export function formatPercent(value: number, digits = 0) {
-  return `${(value * 100).toFixed(digits)}%`;
+  return new Intl.NumberFormat(getNumberLocale(), {
+    style: "percent",
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  }).format(value);
 }
 
-// 2h 05m, 45 min, 30 s
+export const formatDecimal = (value: number, digits = 1) =>
+  new Intl.NumberFormat(getNumberLocale(), {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  }).format(value);
+
+// 2h 05m / 2 h 05, 45 min, 30 s
 export function formatDuration(ms: number) {
+  const fr = getLanguage() === "fr";
   const totalMinutes = Math.round(ms / 60000);
   if (totalMinutes < 1) {
     return `${Math.round(ms / 1000)} s`;
@@ -26,16 +42,14 @@ export function formatDuration(ms: number) {
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
   if (days > 0) {
-    return `${days}d ${hours}h`;
+    return fr ? `${days} j ${hours} h` : `${days}d ${hours}h`;
   }
   if (hours > 0) {
-    return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+    const padded = minutes.toString().padStart(2, "0");
+    return fr ? `${hours} h ${padded}` : `${hours}h ${padded}m`;
   }
   return `${minutes} min`;
 }
-
-export const formatHours = (ms: number) =>
-  `${formatNumber(Math.round(ms / 3600000))} h`;
 
 export const formatMinutes = (ms: number) =>
   formatNumber(Math.round(ms / 60000));
@@ -47,10 +61,13 @@ export function formatTrackLength(ms: number) {
 }
 
 export const formatDate = (date: Date | string, pattern = "PP") =>
-  format(new Date(date), pattern);
+  format(new Date(date), pattern, { locale: getDateLocale() });
 
 export const formatTimeAgo = (date: Date | string) =>
-  formatDistanceToNowStrict(new Date(date), { addSuffix: true });
+  formatDistanceToNowStrict(new Date(date), {
+    addSuffix: true,
+    locale: getDateLocale(),
+  });
 
 export function formatHour(hour: number) {
   const date = new Date();
@@ -58,15 +75,18 @@ export function formatHour(hour: number) {
   return format(date, "HH:mm");
 }
 
-export const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
+// Monday first, in the current language
+export function weekdayNames() {
+  const monday = new Date(2024, 0, 1);
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + index);
+    const name = format(day, "EEEE", { locale: getDateLocale() });
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  });
+}
+
+export const weekdayShort = (name: string) => name.slice(0, 3);
 
 // Smallest image at least `size` px wide, or the biggest one
 export function pickImage(
@@ -92,6 +112,22 @@ export function initials(name: string | undefined) {
     .join("");
 }
 
-export function pluralize(count: number, word: string, plural = `${word}s`) {
-  return `${formatNumber(count)} ${count === 1 ? word : plural}`;
+const UNITS = {
+  play: "unit.play",
+  track: "unit.track",
+  album: "unit.album",
+  artist: "unit.artist",
+  day: "unit.day",
+  "active day": "unit.activeDay",
+  "new track": "unit.newTrack",
+  account: "unit.account",
+  minute: "unit.minute",
+  second: "unit.second",
+} as const;
+
+export type Unit = keyof typeof UNITS;
+
+// "12 plays" / "12 écoutes"
+export function pluralize(count: number, unit: Unit) {
+  return translatePlural(UNITS[unit], count);
 }

@@ -1,8 +1,18 @@
-import { KeyRound, Loader2, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Copy,
+  KeyRound,
+  Loader2,
+  RotateCcw,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useSelector } from "react-redux";
+import { toast } from "sonner";
 
 import { SectionCard } from "@/components/stats/section-card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,8 +37,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { formatDate, initials } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
+import { api } from "@/services/apis/api";
 import { AdminAccount } from "@/services/redux/modules/admin/reducer";
 import { selectAccounts } from "@/services/redux/modules/admin/selector";
 import {
@@ -52,15 +65,14 @@ export function InstanceCard() {
   }
   return (
     <SectionCard
-      title="Instance"
-      description="Settings for everyone on this Your Spotify">
+      title={t("admin.instance")}
+      description={t("admin.instanceDescription")}>
       <div className="flex flex-col divide-y">
         <div className="flex items-center justify-between gap-4 pb-4">
           <div>
-            <p className="text-sm font-medium">Open registrations</p>
+            <p className="text-sm font-medium">{t("admin.registrations")}</p>
             <p className="text-xs text-muted-foreground">
-              Anyone reaching the site can create an account. Their Spotify
-              account must also be added in your Spotify app.
+              {t("admin.registrationsHint")}
             </p>
           </div>
           <Switch
@@ -72,9 +84,9 @@ export function InstanceCard() {
         </div>
         <div className="flex items-center justify-between gap-4 pt-4">
           <div>
-            <p className="text-sm font-medium">Affinity</p>
+            <p className="text-sm font-medium">{t("admin.social")}</p>
             <p className="text-xs text-muted-foreground">
-              Lets users compare their tops with each other.
+              {t("admin.socialHint")}
             </p>
           </div>
           <Switch
@@ -125,14 +137,15 @@ function ResetPasswordDialog({
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>New password for {account?.username}</DialogTitle>
-            <DialogDescription>
-              Give this temporary password to them, they can change it in their
-              settings.
-            </DialogDescription>
+            <DialogTitle>
+              {t("admin.resetTitle", { name: account?.username ?? "" })}
+            </DialogTitle>
+            <DialogDescription>{t("admin.resetText")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="temporary-password">Temporary password</Label>
+            <Label htmlFor="temporary-password">
+              {t("admin.temporaryPassword")}
+            </Label>
             <Input
               id="temporary-password"
               autoComplete="new-password"
@@ -146,7 +159,7 @@ function ResetPasswordDialog({
           <DialogFooter>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="animate-spin" />}
-              Set password
+              {t("settings.setPassword")}
             </Button>
           </DialogFooter>
         </form>
@@ -162,9 +175,7 @@ export function UsersCard() {
   const [resetting, setResetting] = useState<AdminAccount | null>(null);
 
   return (
-    <SectionCard
-      title="Users"
-      description={`${accounts.length} account${accounts.length > 1 ? "s" : ""}`}>
+    <SectionCard title={t("admin.users")} description={`${accounts.length}`}>
       <div className="flex flex-col divide-y">
         {accounts.map((account) => (
           <div
@@ -177,20 +188,22 @@ export function UsersCard() {
               <span className="flex items-center gap-2 truncate text-sm font-medium">
                 {account.username}
                 {account.id === me?._id && (
-                  <Badge variant="secondary">You</Badge>
+                  <Badge variant="secondary">{t("common.you")}</Badge>
                 )}
               </span>
               <span className="text-xs text-muted-foreground">
                 {account.firstListenedAt
-                  ? `Listening since ${formatDate(account.firstListenedAt, "PP")}`
-                  : "No listening yet"}
+                  ? t("admin.listeningSince", {
+                      date: formatDate(account.firstListenedAt, "PP"),
+                    })
+                  : t("admin.noListening")}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Label
                 htmlFor={`admin-${account.id}`}
                 className="text-xs font-normal text-muted-foreground">
-                Admin
+                {t("common.admin")}
               </Label>
               <Switch
                 id={`admin-${account.id}`}
@@ -207,7 +220,7 @@ export function UsersCard() {
               size="sm"
               onClick={() => setResetting(account)}>
               <KeyRound />
-              Password
+              {t("admin.passwordButton")}
             </Button>
             {account.id !== me?._id && (
               <AlertDialog>
@@ -217,27 +230,26 @@ export function UsersCard() {
                     size="sm"
                     className="text-destructive">
                     <Trash2 />
-                    Delete
+                    {t("admin.delete")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete {account.username}?
+                      {t("admin.deleteTitle", { name: account.username })}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Their whole listening history is deleted. This cannot be
-                      undone.
+                      {t("admin.deleteText")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-destructive text-white hover:bg-destructive/90"
                       onClick={() =>
                         dispatch(deleteUser({ id: account.id })).catch(() => {})
                       }>
-                      Delete permanently
+                      {t("admin.deleteConfirm")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -250,6 +262,158 @@ export function UsersCard() {
         account={resetting}
         onClose={() => setResetting(null)}
       />
+    </SectionCard>
+  );
+}
+
+export function SpotifyAppCard() {
+  const queryClient = useQueryClient();
+  const app = useQuery({
+    queryKey: ["spotifyApp"],
+    queryFn: () => api.spotifyApp().then((r) => r.data),
+  });
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [secret, setSecret] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const currentId = clientId ?? app.data?.clientId ?? "";
+  const changesApp = Boolean(
+    app.data?.clientId && currentId && currentId !== app.data.clientId,
+  );
+
+  const done = (message: string) => {
+    toast.success(message);
+    setSecret("");
+    setClientId(null);
+    queryClient.invalidateQueries({ queryKey: ["spotifyApp"] }).catch(() => {});
+  };
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await api.saveSpotifyApp(currentId.trim(), secret.trim());
+      done(t("admin.appSaved"));
+    } catch (e) {
+      const code = (e as { response?: { data?: { code?: string } } })?.response
+        ?.data?.code;
+      toast.error(
+        code === "INVALID_SPOTIFY_APP"
+          ? t("admin.appInvalid")
+          : code === "SECRET_REQUIRED"
+            ? t("admin.appSecretRequired")
+            : t("admin.appError"),
+      );
+    }
+    setSaving(false);
+  };
+
+  const reset = async () => {
+    setSaving(true);
+    try {
+      await api.resetSpotifyApp();
+      done(t("admin.appReset"));
+    } catch {
+      toast.error(t("admin.appError"));
+    }
+    setSaving(false);
+  };
+
+  const copyRedirect = () => {
+    if (!app.data) return;
+    navigator.clipboard
+      .writeText(app.data.redirectUri)
+      .then(() => toast.success(t("admin.copied")))
+      .catch(() => {});
+  };
+
+  return (
+    <SectionCard
+      className="xl:col-span-2"
+      title={t("admin.spotifyApp")}
+      description={t("admin.spotifyAppDescription")}
+      action={
+        app.data && (
+          <Badge variant={app.data.configured ? "secondary" : "destructive"}>
+            {app.data.configured
+              ? t(`admin.source.${app.data.source}`)
+              : t("admin.notConfigured")}
+          </Badge>
+        )
+      }>
+      {!app.data ? (
+        <Skeleton className="h-40 w-full" />
+      ) : (
+        <form onSubmit={save} className="flex flex-col gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="client-id">{t("admin.clientId")}</Label>
+              <Input
+                id="client-id"
+                value={currentId}
+                onChange={(event) => setClientId(event.target.value)}
+                className="font-mono text-xs"
+                autoComplete="off"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="client-secret">{t("admin.clientSecret")}</Label>
+              <Input
+                id="client-secret"
+                type="password"
+                value={secret}
+                onChange={(event) => setSecret(event.target.value)}
+                placeholder={t("admin.secretPlaceholder")}
+                className="font-mono text-xs"
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>{t("admin.redirectUri")}</Label>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={app.data.redirectUri}
+                className="font-mono text-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={copyRedirect}>
+                <Copy />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("admin.redirectUriHint")}
+            </p>
+          </div>
+          {changesApp && (
+            <Alert>
+              <TriangleAlert />
+              <AlertDescription>{t("admin.changeWarning")}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={saving || !currentId.trim()}>
+              {saving && <Loader2 className="animate-spin" />}
+              {t("admin.saveApp")}
+            </Button>
+            {app.data.source === "settings" && app.data.environmentClientId && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving}
+                onClick={() => reset().catch(() => {})}>
+                <RotateCcw />
+                {t("admin.resetApp")}
+              </Button>
+            )}
+          </div>
+        </form>
+      )}
     </SectionCard>
   );
 }

@@ -1,8 +1,12 @@
 import {
+  ArrowUpCircle,
   AudioLines,
+  Award,
   CalendarClock,
+  ChevronsUpDown,
   Disc3,
   Gauge,
+  History,
   Hourglass,
   LogOut,
   MicVocal,
@@ -11,10 +15,8 @@ import {
   Settings,
   Sparkles,
   Telescope,
+  Trophy,
   Users,
-  ChevronsUpDown,
-  History,
-  ArrowUpCircle,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { useSelector } from "react-redux";
@@ -43,7 +45,8 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { initials } from "@/lib/format";
+import { formatTimeAgo, initials } from "@/lib/format";
+import { MessageKey, useT } from "@/lib/i18n";
 import { usePeriodSearch } from "@/lib/period";
 import {
   selectAffinityEnabled,
@@ -56,44 +59,59 @@ import {
 } from "@/services/redux/modules/user/selector";
 
 interface NavItem {
-  title: string;
+  title: MessageKey;
   url: string;
   icon: ReactNode;
 }
 
-const navGroups: { label: string; items: NavItem[] }[] = [
+interface NavGroup {
+  label: MessageKey;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
-    label: "Dashboard",
+    label: "nav.dashboard",
     items: [
-      { title: "Overview", url: "/", icon: <Gauge /> },
-      { title: "Recap", url: "/recap", icon: <Sparkles /> },
+      { title: "nav.overview", url: "/", icon: <Gauge /> },
+      { title: "nav.recap", url: "/recap", icon: <Sparkles /> },
+      { title: "nav.achievements", url: "/achievements", icon: <Award /> },
     ],
   },
   {
-    label: "Tops",
+    label: "nav.tops",
     items: [
-      { title: "Top tracks", url: "/top/tracks", icon: <Music2 /> },
-      { title: "Top artists", url: "/top/artists", icon: <MicVocal /> },
-      { title: "Top albums", url: "/top/albums", icon: <Disc3 /> },
+      { title: "nav.topTracks", url: "/top/tracks", icon: <Music2 /> },
+      { title: "nav.topArtists", url: "/top/artists", icon: <MicVocal /> },
+      { title: "nav.topAlbums", url: "/top/albums", icon: <Disc3 /> },
     ],
   },
   {
-    label: "Explore",
+    label: "nav.explore",
     items: [
-      { title: "History", url: "/history", icon: <History /> },
-      { title: "Habits", url: "/habits", icon: <CalendarClock /> },
-      { title: "Taste", url: "/taste", icon: <Palette /> },
-      { title: "Discoveries", url: "/discoveries", icon: <Telescope /> },
-      { title: "Sessions", url: "/sessions", icon: <Hourglass /> },
+      { title: "nav.history", url: "/history", icon: <History /> },
+      { title: "nav.habits", url: "/habits", icon: <CalendarClock /> },
+      { title: "nav.taste", url: "/taste", icon: <Palette /> },
+      { title: "nav.discoveries", url: "/discoveries", icon: <Telescope /> },
+      { title: "nav.sessions", url: "/sessions", icon: <Hourglass /> },
     ],
   },
 ];
+
+const socialGroup: NavGroup = {
+  label: "nav.social",
+  items: [
+    { title: "nav.friends", url: "/friends", icon: <Trophy /> },
+    { title: "nav.affinity", url: "/affinity", icon: <Users /> },
+  ],
+};
 
 function isActive(pathname: string, url: string) {
   return url === "/" ? pathname === "/" : pathname.startsWith(url);
 }
 
 export function AppSidebar() {
+  const t = useT();
   const { pathname } = useLocation();
   const periodSearch = usePeriodSearch();
   const user = useSelector(selectUser);
@@ -109,17 +127,15 @@ export function AppSidebar() {
     }
   };
 
-  const groups = [
-    ...navGroups,
-    ...(affinityEnabled && !isPublic
-      ? [
-          {
-            label: "Social",
-            items: [{ title: "Affinity", url: "/affinity", icon: <Users /> }],
-          },
-        ]
-      : []),
-  ];
+  const groups =
+    affinityEnabled && !isPublic ? [...navGroups, socialGroup] : navGroups;
+
+  // Most recent sync of the linked Spotify accounts
+  const lastSync = (user?.spotifyAccounts ?? [])
+    .map((account) => account.lastSyncAt)
+    .filter((date): date is string => Boolean(date))
+    .sort()
+    .at(-1);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -134,7 +150,7 @@ export function AppSidebar() {
                 <div className="grid flex-1 text-left leading-tight">
                   <span className="truncate font-semibold">Your Spotify</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Listening stats
+                    {t("nav.appSubtitle")}
                   </span>
                 </div>
               </Link>
@@ -145,20 +161,20 @@ export function AppSidebar() {
       <SidebarContent>
         {groups.map((group) => (
           <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
-                      tooltip={item.title}
+                      tooltip={t(item.title)}
                       isActive={isActive(pathname, item.url)}>
                       <Link
                         to={`${item.url}${periodSearch}`}
                         onClick={closeOnMobile}>
                         {item.icon}
-                        <span>{item.title}</span>
+                        <span>{t(item.title)}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -172,13 +188,13 @@ export function AppSidebar() {
         <SidebarMenu>
           {updateAvailable && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Update available">
+              <SidebarMenuButton asChild tooltip={t("nav.updateAvailable")}>
                 <a
                   href="https://github.com/razday/your_spotify_v2/releases"
                   target="_blank"
                   rel="noreferrer">
                   <ArrowUpCircle className="text-primary" />
-                  <span>Update available</span>
+                  <span>{t("nav.updateAvailable")}</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -187,11 +203,11 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                tooltip="Settings"
+                tooltip={t("nav.settings")}
                 isActive={pathname.startsWith("/settings")}>
                 <Link to="/settings" onClick={closeOnMobile}>
                   <Settings />
-                  <span>Settings</span>
+                  <span>{t("nav.settings")}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -213,8 +229,13 @@ export function AppSidebar() {
                         {user.username}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {user.admin ? "Admin" : "Member"}
-                        {version ? ` · v${version}` : ""}
+                        {lastSync
+                          ? t("nav.syncedAgo", {
+                              when: formatTimeAgo(lastSync),
+                            })
+                          : user.admin
+                            ? t("common.admin")
+                            : t("common.member")}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
@@ -225,22 +246,21 @@ export function AppSidebar() {
                   side={isMobile ? "bottom" : "right"}
                   align="end"
                   sideOffset={4}>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    {user.spotifyAccount?.displayName
-                      ? `Spotify: ${user.spotifyAccount.displayName}`
-                      : "Signed in"}
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                    {user.admin ? t("common.admin") : t("common.member")}
+                    {version ? ` · v${version}` : ""}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/settings" onClick={closeOnMobile}>
                       <Settings />
-                      Settings
+                      {t("common.settings")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/logout">
                       <LogOut />
-                      Log out
+                      {t("common.logout")}
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

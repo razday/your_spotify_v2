@@ -1,4 +1,15 @@
-import { Copy, Link2, Link2Off, Loader2, Share2, Trash2 } from "lucide-react";
+import {
+  CircleOff,
+  Copy,
+  ExternalLink,
+  Link2,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Share2,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,20 +25,44 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  formatDate,
+  formatNumber,
+  formatTimeAgo,
+  initials,
+} from "@/lib/format";
+import { MessageKey, translate as t } from "@/lib/i18n";
+import {
+  accountName,
+  missesPlaylistScopes,
+  spotifyProfileUrl,
+} from "@/lib/spotify";
 import {
   changePassword,
   changeUsername,
   deletePublicToken,
   generateNewPublicToken,
-  unlinkSpotify,
+  updateSpotifyAccount,
 } from "@/services/redux/modules/user/thunk";
-import { User } from "@/services/redux/modules/user/types";
+import { SpotifyAccount, User } from "@/services/redux/modules/user/types";
 import { useAppDispatch } from "@/services/redux/tools";
 import { getSpotifyLogUrl } from "@/services/tools";
 
@@ -59,10 +94,12 @@ export function ProfileCard({ user }: { user: User }) {
   };
 
   return (
-    <SectionCard title="Profile" description="Your username is also your login">
+    <SectionCard
+      title={t("settings.profile")}
+      description={t("settings.profileDescription")}>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username">{t("settings.username")}</Label>
           <div className="flex gap-2">
             <Input
               id="username"
@@ -79,13 +116,19 @@ export function ProfileCard({ user }: { user: User }) {
                 name.trim().length < 2
               }>
               {saving && <Loader2 className="animate-spin" />}
-              Save
+              {t("common.save")}
             </Button>
           </div>
         </div>
         <div className="divide-y">
-          <Row label="Role">{user.admin ? <Badge>Admin</Badge> : "Member"}</Row>
-          <Row label="Account ID">
+          <Row label={t("settings.role")}>
+            {user.admin ? (
+              <Badge>{t("common.admin")}</Badge>
+            ) : (
+              t("common.member")
+            )}
+          </Row>
+          <Row label={t("settings.accountId")}>
             <code className="text-xs">{user._id}</code>
           </Row>
         </div>
@@ -106,7 +149,7 @@ export function PasswordCard({ user }: { user: User }) {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (next !== confirmation) {
-      setError("The passwords do not match");
+      setError(t("settings.passwordMismatch"));
       return;
     }
     setError(null);
@@ -129,15 +172,15 @@ export function PasswordCard({ user }: { user: User }) {
 
   return (
     <SectionCard
-      title="Password"
-      description="Used to log in with your username">
+      title={t("settings.password")}
+      description={t("settings.passwordDescription")}>
       <form onSubmit={submit} className="flex flex-col gap-4">
         {!user.hasPassword && (
-          <Alert variant={params.get("set_password") ? "default" : undefined}>
-            <AlertDescription>
-              Your account has no password yet. Set one to log in with your
-              username.
-            </AlertDescription>
+          <Alert
+            className={
+              params.get("set_password") ? "border-primary" : undefined
+            }>
+            <AlertDescription>{t("settings.noPassword")}</AlertDescription>
           </Alert>
         )}
         <input
@@ -149,7 +192,9 @@ export function PasswordCard({ user }: { user: User }) {
         />
         {user.hasPassword && (
           <div className="grid gap-2">
-            <Label htmlFor="current-password">Current password</Label>
+            <Label htmlFor="current-password">
+              {t("settings.currentPassword")}
+            </Label>
             <Input
               id="current-password"
               type="password"
@@ -162,7 +207,7 @@ export function PasswordCard({ user }: { user: User }) {
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="new-password">New password</Label>
+            <Label htmlFor="new-password">{t("settings.newPassword")}</Label>
             <Input
               id="new-password"
               type="password"
@@ -175,7 +220,7 @@ export function PasswordCard({ user }: { user: User }) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="confirm-password">Confirm</Label>
+            <Label htmlFor="confirm-password">{t("settings.confirm")}</Label>
             <Input
               id="confirm-password"
               type="password"
@@ -187,88 +232,263 @@ export function PasswordCard({ user }: { user: User }) {
           </div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+        <p className="text-xs text-muted-foreground">
+          {t("auth.passwordHint", { count: 8 })}
+        </p>
         <Button type="submit" className="w-fit" disabled={saving}>
           {saving && <Loader2 className="animate-spin" />}
-          {user.hasPassword ? "Change password" : "Set password"}
+          {user.hasPassword
+            ? t("settings.changePassword")
+            : t("settings.setPassword")}
         </Button>
       </form>
     </SectionCard>
   );
 }
 
-export function SpotifyCard({ user }: { user: User }) {
+const STATUS_VARIANT = {
+  active: "default",
+  expired: "destructive",
+  untracked: "secondary",
+} as const;
+
+type PendingAction = { account: SpotifyAccount; action: "untrack" | "remove" };
+
+export function SpotifyAccountsCard({ user }: { user: User }) {
   const dispatch = useAppDispatch();
-  const account = user.spotifyAccount;
-  const status = !user.spotifyId
-    ? { label: "Not linked", variant: "secondary" as const }
-    : user.spotifyLinkExpired
-      ? { label: "Expired", variant: "destructive" as const }
-      : { label: "Linked", variant: "default" as const };
+  const [pending, setPending] = useState<PendingAction | null>(null);
+  const accounts = user.spotifyAccounts;
+
+  const run = (
+    account: SpotifyAccount,
+    action: "primary" | "untrack" | "remove",
+  ) => {
+    const name = accountName(account);
+    const done = {
+      primary: "accounts.primaryDone",
+      untrack: "accounts.untrackDone",
+      remove: "accounts.removeDone",
+    }[action] as MessageKey;
+    dispatch(
+      updateSpotifyAccount({
+        id: account.id,
+        action,
+        messages: {
+          success: t(done, { name }),
+          error: t("accounts.actionError"),
+        },
+      }),
+    ).catch(() => {});
+  };
 
   return (
     <SectionCard
-      title="Spotify account"
-      description="Your listening history comes from this account"
-      action={<Badge variant={status.variant}>{status.label}</Badge>}>
-      <div className="flex flex-col gap-4">
-        {user.spotifyId && (
-          <div className="divide-y">
-            {account?.displayName && (
-              <Row label="Name">{account.displayName}</Row>
-            )}
-            {account?.email && <Row label="Email">{account.email}</Row>}
-            {account?.product && <Row label="Plan">{account.product}</Row>}
-            <Row label="Spotify ID">
-              <code className="text-xs">{user.spotifyId}</code>
-            </Row>
-          </div>
-        )}
-        {user.spotifyLinkExpired && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              Spotify revoked the access: your history is not collected until
-              you link it again.
-            </AlertDescription>
-          </Alert>
-        )}
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <a href={getSpotifyLogUrl()}>
-              <Link2 />
-              {user.spotifyId ? "Link again" : "Link Spotify"}
-            </a>
-          </Button>
-          {user.spotifyId && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                  <Link2Off />
-                  Unlink
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Unlink your Spotify account?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Your history stops being collected until you link a Spotify
-                    account again. Your stats are kept.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => dispatch(unlinkSpotify()).catch(() => {})}>
-                    Unlink
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+      className="xl:col-span-2"
+      title={t("accounts.title")}
+      description={t("accounts.description")}
+      action={
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" asChild>
+              <a href={getSpotifyLogUrl()}>
+                <Plus />
+                {accounts.length > 0
+                  ? t("accounts.linkAnother")
+                  : t("accounts.link")}
+              </a>
+            </Button>
+          </TooltipTrigger>
+          {accounts.length > 0 && (
+            <TooltipContent className="max-w-xs">
+              {t("accounts.linkAnotherHint")}
+            </TooltipContent>
           )}
+        </Tooltip>
+      }>
+      {accounts.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("accounts.none")}</p>
+      ) : (
+        <div className="flex flex-col divide-y">
+          {accounts.map((account) => {
+            const name = accountName(account);
+            return (
+              <div
+                key={account.id}
+                className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-11">
+                    {account.image && (
+                      <AvatarImage src={account.image} alt="" />
+                    )}
+                    <AvatarFallback>{initials(name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="flex flex-wrap items-center gap-2 font-medium">
+                      <span className="truncate">{name}</span>
+                      {account.primary && (
+                        <Badge variant="outline" className="gap-1">
+                          <Star className="size-3" />
+                          {t("accounts.primary")}
+                        </Badge>
+                      )}
+                      <Badge variant={STATUS_VARIANT[account.status]}>
+                        {t(`accounts.status.${account.status}` as MessageKey)}
+                      </Badge>
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {[account.email, account.product]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <a
+                          href={spotifyProfileUrl(account.spotifyId)}
+                          target="_blank"
+                          rel="noreferrer">
+                          <ExternalLink />
+                          {t("accounts.profile")}
+                        </a>
+                      </DropdownMenuItem>
+                      {account.status === "active" && !account.primary && (
+                        <DropdownMenuItem
+                          onSelect={() => run(account, "primary")}>
+                          <Star />
+                          {t("accounts.makePrimary")}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem asChild>
+                        <a href={getSpotifyLogUrl()}>
+                          <Link2 />
+                          {t("accounts.relink")}
+                        </a>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {account.status !== "untracked" && (
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            setPending({ account, action: "untrack" })
+                          }>
+                          <CircleOff />
+                          {t("accounts.untrack")}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() =>
+                          setPending({ account, action: "remove" })
+                        }>
+                        <Trash2 />
+                        {t("accounts.remove")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="flex flex-col rounded-lg bg-muted/50 p-2.5">
+                    <span className="text-muted-foreground">
+                      {t("accounts.lastSync")}
+                    </span>
+                    <span className="font-medium">
+                      {account.lastSyncAt
+                        ? formatTimeAgo(account.lastSyncAt)
+                        : t("common.never")}
+                    </span>
+                  </div>
+                  <div className="flex flex-col rounded-lg bg-muted/50 p-2.5">
+                    <span className="text-muted-foreground">
+                      {t("accounts.lastPlay")}
+                    </span>
+                    <span className="font-medium">
+                      {account.lastPlayAt
+                        ? formatTimeAgo(account.lastPlayAt)
+                        : t("common.never")}
+                    </span>
+                  </div>
+                  <div className="flex flex-col rounded-lg bg-muted/50 p-2.5">
+                    <span className="text-muted-foreground">
+                      {t("accounts.plays")}
+                    </span>
+                    <span className="font-medium tabular">
+                      {formatNumber(account.plays)}
+                    </span>
+                  </div>
+                </div>
+                {account.status === "expired" && (
+                  <p className="text-xs text-destructive">
+                    {t("accounts.expiredHint")}
+                  </p>
+                )}
+                {account.status === "untracked" && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("accounts.untrackedHint")}
+                  </p>
+                )}
+                {account.status === "active" &&
+                  missesPlaylistScopes(account) && (
+                    <p className="text-xs text-chart-4">
+                      {t("accounts.scopesHint")}
+                    </p>
+                  )}
+                <span className="text-[11px] text-muted-foreground">
+                  {t("accounts.linkedOn", {
+                    date: formatDate(account.linkedAt, "PP"),
+                  })}
+                  {account.primary ? ` · ${t("accounts.primaryHint")}` : ""}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
+      <AlertDialog
+        open={pending !== null}
+        onOpenChange={(open) => !open && setPending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pending &&
+                t(
+                  pending.action === "untrack"
+                    ? "accounts.untrackTitle"
+                    : "accounts.removeTitle",
+                  { name: accountName(pending.account) },
+                )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pending?.action === "untrack"
+                ? t("accounts.untrackText")
+                : t("accounts.removeText")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className={
+                pending?.action === "remove"
+                  ? "bg-destructive text-white hover:bg-destructive/90"
+                  : undefined
+              }
+              onClick={() => {
+                if (pending) {
+                  run(pending.account, pending.action);
+                }
+                setPending(null);
+              }}>
+              {pending?.action === "untrack"
+                ? t("accounts.untrack")
+                : t("accounts.remove")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SectionCard>
   );
 }
@@ -283,14 +503,14 @@ export function SharingCard({ user }: { user: User }) {
     if (!link) return;
     navigator.clipboard
       .writeText(link)
-      .then(() => toast.success("Link copied"))
-      .catch(() => toast.error("Could not copy the link"));
+      .then(() => toast.success(t("settings.linkCopied")))
+      .catch(() => toast.error(t("settings.copyFailed")));
   };
 
   return (
     <SectionCard
-      title="Public sharing"
-      description="Anyone with the link can see your stats, without being able to change anything">
+      title={t("settings.sharing")}
+      description={t("settings.sharingDescription")}>
       <div className="flex flex-col gap-3">
         {link ? (
           <>
@@ -307,13 +527,13 @@ export function SharingCard({ user }: { user: User }) {
                   dispatch(generateNewPublicToken()).catch(() => {})
                 }>
                 <Share2 />
-                New link
+                {t("settings.newLink")}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => dispatch(deletePublicToken()).catch(() => {})}>
                 <Trash2 />
-                Disable sharing
+                {t("settings.disableSharing")}
               </Button>
             </div>
           </>
@@ -322,7 +542,7 @@ export function SharingCard({ user }: { user: User }) {
             className="w-fit"
             onClick={() => dispatch(generateNewPublicToken()).catch(() => {})}>
             <Share2 />
-            Create a share link
+            {t("settings.createLink")}
           </Button>
         )}
       </div>

@@ -11,7 +11,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatDuration } from "@/lib/format";
+import { formatDate, formatDuration, pluralize } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { CalendarDay } from "@/services/apis/insights";
 
 interface CalendarHeatmapProps {
@@ -32,7 +33,9 @@ export function CalendarHeatmap({ days, start, end }: CalendarHeatmapProps) {
   const today = startOfDay(end);
 
   const columns = Array.from({ length: weeks }, (_, week) =>
-    Array.from({ length: 7 }, (_day, day) => addDays(firstWeek, week * 7 + day)),
+    Array.from({ length: 7 }, (_day, day) =>
+      addDays(firstWeek, week * 7 + day),
+    ),
   );
 
   return (
@@ -43,7 +46,7 @@ export function CalendarHeatmap({ days, start, end }: CalendarHeatmapProps) {
             <div key={index} className="flex flex-col gap-[3px]">
               <div className="h-4 text-[10px] text-muted-foreground">
                 {column[0] && column[0].getDate() <= 7
-                  ? format(column[0], "MMM")
+                  ? formatDate(column[0], "MMM")
                   : ""}
               </div>
               {column.map((date) => {
@@ -71,11 +74,13 @@ export function CalendarHeatmap({ days, start, end }: CalendarHeatmapProps) {
                       />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="font-medium">{format(date, "EEEE, PP")}</p>
+                      <p className="font-medium">
+                        {formatDate(date, "EEEE PP")}
+                      </p>
                       <p className="text-xs opacity-80">
                         {day
-                          ? `${formatDuration(day.durationMs)} · ${day.plays} plays`
-                          : "No listening"}
+                          ? `${formatDuration(day.durationMs)} · ${pluralize(day.plays, "play")}`
+                          : t("common.noListening")}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -86,7 +91,7 @@ export function CalendarHeatmap({ days, start, end }: CalendarHeatmapProps) {
         </div>
       </div>
       <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-        Less
+        {t("common.less")}
         {LEVELS.map((level) => (
           <div
             key={level}
@@ -102,7 +107,7 @@ export function CalendarHeatmap({ days, start, end }: CalendarHeatmapProps) {
             }
           />
         ))}
-        More
+        {t("common.more")}
       </div>
     </div>
   );

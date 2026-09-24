@@ -1,13 +1,17 @@
-import { Eye } from "lucide-react";
+import { Eye, TriangleAlert } from "lucide-react";
 import { ReactNode } from "react";
 import { useSelector } from "react-redux";
+import { Link, useLocation } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { translatePlural, useT } from "@/lib/i18n";
+import { expiredAccounts } from "@/lib/spotify";
 import {
   selectIsPublic,
   selectUser,
@@ -26,8 +30,11 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, showPeriod = true }: AppLayoutProps) {
+  const t = useT();
   const isPublic = useSelector(selectIsPublic);
   const user = useSelector(selectUser);
+  const { pathname } = useLocation();
+  const expired = isPublic ? [] : expiredAccounts(user);
 
   return (
     <SidebarProvider>
@@ -42,7 +49,10 @@ export function AppLayout({ children, showPeriod = true }: AppLayoutProps) {
           {isPublic && (
             <span className="flex items-center gap-1.5 rounded-full bg-chart-2/15 px-2.5 py-1 text-xs font-medium text-chart-2">
               <Eye className="size-3.5" />
-              <span className="hidden sm:inline">Viewing</span> {user?.username}
+              <span className="hidden sm:inline">
+                {t("header.viewing")}
+              </span>{" "}
+              {user?.username}
             </span>
           )}
           <div className="ml-auto flex items-center gap-2">
@@ -51,6 +61,17 @@ export function AppLayout({ children, showPeriod = true }: AppLayoutProps) {
             <ThemeToggle />
           </div>
         </header>
+        {expired.length > 0 && !pathname.startsWith("/settings") && (
+          <div className="flex flex-wrap items-center gap-3 border-b bg-chart-4/10 px-4 py-2.5 text-sm md:px-6">
+            <TriangleAlert className="size-4 shrink-0 text-chart-4" />
+            <span className="flex-1">
+              {translatePlural("header.expiredBanner", expired.length)}
+            </span>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/settings/account">{t("header.expiredAction")}</Link>
+            </Button>
+          </div>
+        )}
         <main className="flex flex-1 flex-col gap-6 p-4 md:p-6">
           {children}
         </main>

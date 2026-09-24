@@ -6,13 +6,16 @@ import { Bootstrap } from "@/components/app/bootstrap";
 import { RequireAuth } from "@/components/app/require-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useLanguage } from "@/lib/i18n";
 import { queryClient } from "@/lib/queries";
+import AchievementsPage from "@/pages/achievements";
 import AffinityPage from "@/pages/affinity";
 import LoginPage from "@/pages/auth/login";
 import LogoutPage from "@/pages/auth/logout";
 import RegisterPage from "@/pages/auth/register";
 import { AlbumPage, ArtistPage, TrackPage } from "@/pages/details";
 import DiscoveriesPage from "@/pages/discoveries";
+import FriendsPage from "@/pages/friends";
 import HabitsPage from "@/pages/habits";
 import HistoryPage from "@/pages/history";
 import { ApiEndpointErrorPage, NotFoundPage } from "@/pages/misc";
@@ -26,13 +29,15 @@ import { selectAffinityEnabled } from "@/services/redux/modules/settings/selecto
 
 export default function App() {
   const affinityEnabled = useSelector(selectAffinityEnabled);
+  const language = useLanguage();
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={200}>
         <BrowserRouter>
           <Bootstrap />
-          <Routes>
+          {/* Remounted when the language changes, so every text follows */}
+          <Routes key={language}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/logout" element={<LogoutPage />} />
@@ -44,6 +49,7 @@ export default function App() {
             <Route element={<RequireAuth />}>
               <Route index element={<OverviewPage />} />
               <Route path="/recap" element={<RecapPage />} />
+              <Route path="/achievements" element={<AchievementsPage />} />
               <Route path="/top/tracks" element={<TopTracksPage />} />
               <Route
                 path="/top/songs"
@@ -62,6 +68,9 @@ export default function App() {
               <Route path="/song/:id" element={<TrackPage />} />
               {affinityEnabled && (
                 <Route path="/affinity" element={<AffinityPage />} />
+              )}
+              {affinityEnabled && (
+                <Route path="/friends" element={<FriendsPage />} />
               )}
               <Route path="/settings/:tab?" element={<SettingsPage />} />
               <Route path="*" element={<NotFoundPage />} />

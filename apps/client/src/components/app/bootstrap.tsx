@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { setCurrentLanguage, useWantedLanguage } from "@/lib/i18n";
 import { useApplyTheme } from "@/lib/theme";
 import { getAccounts } from "@/services/redux/modules/admin/thunk";
 import { selectMessage } from "@/services/redux/modules/message/selector";
@@ -28,6 +29,11 @@ export function Bootstrap() {
   const urlToken = params.get("token");
 
   useApplyTheme();
+
+  const language = useWantedLanguage();
+  useEffect(() => {
+    setCurrentLanguage(language);
+  }, [language]);
 
   useEffect(() => {
     async function init() {

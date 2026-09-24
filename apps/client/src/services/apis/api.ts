@@ -1,19 +1,9 @@
 import Axios from "axios";
+
 import { AdminAccount } from "../redux/modules/admin/reducer";
 import { ImporterState } from "../redux/modules/import/types";
 import { Playlist, PlaylistContext } from "../redux/modules/playlist/types";
-import { User } from "../redux/modules/user/types";
-import {
-  CalendarDay,
-  Composition,
-  Discoveries,
-  HeatmapCell,
-  ItemTimeline,
-  Overview,
-  ReleaseYear,
-  Repeat,
-  TimelineItemType,
-} from "./insights";
+import { SpotifyAccount, User } from "../redux/modules/user/types";
 import {
   Album,
   Artist,
@@ -30,6 +20,22 @@ import {
   TrackWithFullArtistAlbum,
   AlbumWithFullArtist,
 } from "../types";
+import {
+  AchievementMetrics,
+  CalendarDay,
+  Composition,
+  Discoveries,
+  Forgotten,
+  Genres,
+  HeatmapCell,
+  ItemTimeline,
+  LeaderboardEntry,
+  Overview,
+  ReleaseYear,
+  SpotifyAppInfo,
+  Repeat,
+  TimelineItemType,
+} from "./insights";
 
 const axios = Axios.create({
   baseURL: (window as any as { API_ENDPOINT: string }).API_ENDPOINT,
@@ -163,7 +169,12 @@ export const api = {
 
   me: () =>
     get<
-      | { status: true; user: User; hasPassword: boolean }
+      | {
+          status: true;
+          user: User;
+          hasPassword: boolean;
+          spotifyAccounts: SpotifyAccount[];
+        }
       | { status: false }
     >("/me"),
   login: (username: string, password: string, remember: boolean) =>
@@ -174,7 +185,20 @@ export const api = {
     axios.put("/auth/password", { currentPassword, newPassword }),
   adminSetPassword: (id: string, newPassword: string) =>
     axios.put(`/auth/password/${id}`, { newPassword }),
-  unlinkSpotify: () => axios.delete("/auth/spotify"),
+  spotifyAccounts: () => get<SpotifyAccount[]>("/spotify-accounts"),
+  setPrimarySpotifyAccount: (id: string) =>
+    axios.post<SpotifyAccount[]>(`/spotify-accounts/${id}/primary`),
+  untrackSpotifyAccount: (id: string) =>
+    axios.post<SpotifyAccount[]>(`/spotify-accounts/${id}/untrack`),
+  removeSpotifyAccount: (id: string) =>
+    axios.delete<SpotifyAccount[]>(`/spotify-accounts/${id}`),
+  spotifyApp: () => axios.get<SpotifyAppInfo>("/global/spotify-app"),
+  saveSpotifyApp: (clientId: string, clientSecret?: string) =>
+    axios.put<SpotifyAppInfo>("/global/spotify-app", {
+      clientId,
+      clientSecret: clientSecret || undefined,
+    }),
+  resetSpotifyApp: () => axios.delete<SpotifyAppInfo>("/global/spotify-app"),
   sme: () => get<SpotifyMe>("/oauth/spotify/me"),
   globalPreferences: () => get<GlobalPreferences>("/global/preferences"),
   rename: (newName: string) => put("/rename", { newName }),
@@ -455,6 +479,13 @@ export const api = {
     get<Repeat[]>("/insights/repeats", { start, end, nb }),
   itemTimeline: (type: TimelineItemType, id: string) =>
     get<ItemTimeline>("/insights/item-timeline", { type, id }),
+  forgotten: (days: number, nb: number) =>
+    get<Forgotten>("/insights/forgotten", { days, nb }),
+  achievements: () => get<AchievementMetrics>("/insights/achievements"),
+  leaderboard: (start: Date, end: Date) =>
+    get<LeaderboardEntry[]>("/insights/leaderboard", { start, end }),
+  genres: (start: Date, end: Date, nb: number) =>
+    get<Genres>("/insights/genres", { start, end, nb }),
 };
 
 export const DEFAULT_ITEMS_TO_LOAD = 20;

@@ -19,7 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { translate as t } from "@/lib/i18n";
 import { usePeriodSearch } from "@/lib/period";
+import { canUseSpotify } from "@/lib/spotify";
 import { setPlaylistContext } from "@/services/redux/modules/playlist/reducer";
 import {
   selectBlacklistedArtists,
@@ -39,9 +41,7 @@ const spotifyUrl = (type: string, id: string) =>
 function useCanUseSpotify() {
   const user = useSelector(selectUser);
   const isPublic = useSelector(selectIsPublic);
-  return Boolean(
-    user && !isPublic && user.spotifyId && !user.spotifyLinkExpired,
-  );
+  return canUseSpotify(user, isPublic);
 }
 
 function Trigger() {
@@ -53,7 +53,7 @@ function Trigger() {
         className="size-8 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100 data-[state=open]:opacity-100"
         onClick={(event) => event.stopPropagation()}>
         <MoreHorizontal className="size-4" />
-        <span className="sr-only">Actions</span>
+        <span className="sr-only">{t("actions.label")}</span>
       </Button>
     </DropdownMenuTrigger>
   );
@@ -71,19 +71,19 @@ export function TrackActions({
   artistId,
 }: TrackActionsProps) {
   const dispatch = useAppDispatch();
-  const canUseSpotify = useCanUseSpotify();
+  const spotifyUsable = useCanUseSpotify();
   const periodSearch = usePeriodSearch();
 
   return (
     <DropdownMenu>
       <Trigger />
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        {canUseSpotify && (
+        {spotifyUsable && (
           <>
             <DropdownMenuItem
               onSelect={() => dispatch(playTrack(trackId)).catch(() => {})}>
               <Play />
-              Play on Spotify
+              {t("actions.play")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() =>
@@ -92,7 +92,7 @@ export function TrackActions({
                 )
               }>
               <ListPlus />
-              Add to a playlist
+              {t("actions.addToPlaylist")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -101,7 +101,7 @@ export function TrackActions({
           <DropdownMenuItem asChild>
             <Link to={`/artist/${artistId}${periodSearch}`}>
               <MicVocal />
-              Go to artist
+              {t("actions.goArtist")}
             </Link>
           </DropdownMenuItem>
         )}
@@ -109,7 +109,7 @@ export function TrackActions({
           <DropdownMenuItem asChild>
             <Link to={`/album/${albumId}${periodSearch}`}>
               <Disc3 />
-              Go to album
+              {t("actions.goAlbum")}
             </Link>
           </DropdownMenuItem>
         )}
@@ -119,7 +119,7 @@ export function TrackActions({
             target="_blank"
             rel="noreferrer">
             <ExternalLink />
-            Open in Spotify
+            {t("common.openSpotify")}
           </a>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -129,7 +129,7 @@ export function TrackActions({
 
 export function ArtistActions({ artistId }: { artistId: string }) {
   const dispatch = useAppDispatch();
-  const canUseSpotify = useCanUseSpotify();
+  const spotifyUsable = useCanUseSpotify();
   const isPublic = useSelector(selectIsPublic);
   const blacklisted = useSelector(selectBlacklistedArtists).includes(artistId);
 
@@ -137,7 +137,7 @@ export function ArtistActions({ artistId }: { artistId: string }) {
     <DropdownMenu>
       <Trigger />
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        {canUseSpotify && (
+        {spotifyUsable && (
           <DropdownMenuItem
             onSelect={() =>
               dispatch(
@@ -145,7 +145,7 @@ export function ArtistActions({ artistId }: { artistId: string }) {
               )
             }>
             <ListPlus />
-            Playlist of their top tracks
+            {t("actions.artistPlaylist")}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem asChild>
@@ -154,7 +154,7 @@ export function ArtistActions({ artistId }: { artistId: string }) {
             target="_blank"
             rel="noreferrer">
             <ExternalLink />
-            Open in Spotify
+            {t("common.openSpotify")}
           </a>
         </DropdownMenuItem>
         {!isPublic && (
@@ -166,7 +166,7 @@ export function ArtistActions({ artistId }: { artistId: string }) {
                   dispatch(unblacklistArtist(artistId)).catch(() => {})
                 }>
                 <Undo2 />
-                Count in my stats again
+                {t("actions.include")}
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -175,7 +175,7 @@ export function ArtistActions({ artistId }: { artistId: string }) {
                   dispatch(blacklistArtist(artistId)).catch(() => {})
                 }>
                 <Ban />
-                Exclude from my stats
+                {t("actions.exclude")}
               </DropdownMenuItem>
             )}
           </>
@@ -196,7 +196,7 @@ export function AlbumActions({ albumId }: { albumId: string }) {
             target="_blank"
             rel="noreferrer">
             <ExternalLink />
-            Open in Spotify
+            {t("common.openSpotify")}
           </a>
         </DropdownMenuItem>
       </DropdownMenuContent>

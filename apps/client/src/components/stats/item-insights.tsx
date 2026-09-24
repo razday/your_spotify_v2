@@ -1,8 +1,13 @@
-import { format } from "date-fns";
-
 import { BarsChart } from "@/components/charts/bars-chart";
 import { ChartSkeleton, SectionCard } from "@/components/stats/section-card";
-import { formatHour, formatNumber, WEEKDAYS } from "@/lib/format";
+import {
+  formatDate,
+  formatHour,
+  formatNumber,
+  weekdayNames,
+  weekdayShort,
+} from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { ItemTimeline } from "@/services/apis/insights";
 
 // Months, hours and weekdays charts shared by the artist/album/track pages
@@ -15,8 +20,8 @@ export function ItemInsights({
     timeline?.months.map((m) => {
       const date = new Date(`${m.month}-01T00:00:00`);
       return {
-        label: format(date, "MMM yy"),
-        tooltipLabel: format(date, "MMMM yyyy"),
+        label: formatDate(date, "MMM yy"),
+        tooltipLabel: formatDate(date, "MMMM yyyy"),
         value: m.plays,
       };
     }) ?? [];
@@ -25,19 +30,21 @@ export function ItemInsights({
     tooltipLabel: formatHour(hour),
     value: timeline?.hours.find((h) => h.hour === hour)?.plays ?? 0,
   }));
-  const weekdays = WEEKDAYS.map((day, index) => ({
-    label: day.slice(0, 3),
+  const weekdays = weekdayNames().map((day, index) => ({
+    label: weekdayShort(day),
     tooltipLabel: day,
     value: timeline?.weekdays.find((w) => w.weekday === index + 1)?.plays ?? 0,
   }));
 
   return (
     <>
-      <SectionCard title="Plays over time" description="Per month, all time">
+      <SectionCard
+        title={t("details.overTime")}
+        description={t("details.overTimeDescription")}>
         {timeline ? (
           <BarsChart
             data={months}
-            label="Plays"
+            label={t("unit.plays")}
             valueFormatter={formatNumber}
           />
         ) : (
@@ -45,11 +52,13 @@ export function ItemInsights({
         )}
       </SectionCard>
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Hour of the day" description="Plays">
+        <SectionCard
+          title={t("details.hourOfDay")}
+          description={t("unit.plays")}>
           {timeline ? (
             <BarsChart
               data={hours}
-              label="Plays"
+              label={t("unit.plays")}
               valueFormatter={formatNumber}
               color="var(--chart-2)"
             />
@@ -57,11 +66,13 @@ export function ItemInsights({
             <ChartSkeleton className="h-56" />
           )}
         </SectionCard>
-        <SectionCard title="Day of the week" description="Plays">
+        <SectionCard
+          title={t("details.dayOfWeek")}
+          description={t("unit.plays")}>
           {timeline ? (
             <BarsChart
               data={weekdays}
-              label="Plays"
+              label={t("unit.plays")}
               valueFormatter={formatNumber}
               color="var(--chart-3)"
             />

@@ -3,7 +3,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatDuration, formatHour, WEEKDAYS } from "@/lib/format";
+import {
+  formatDuration,
+  formatHour,
+  pluralize,
+  weekdayNames,
+  weekdayShort,
+} from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { HeatmapCell } from "@/services/apis/insights";
 
 // Weekday x hour grid, the darker the more listening
@@ -23,10 +30,10 @@ export function HeatmapGrid({ cells }: { cells: HeatmapCell[] }) {
             {hour % 3 === 0 ? hour : ""}
           </div>
         ))}
-        {WEEKDAYS.map((day, index) => (
+        {weekdayNames().map((day, index) => (
           <div key={day} className="contents">
             <div className="flex items-center text-xs text-muted-foreground">
-              {day.slice(0, 3)}
+              {weekdayShort(day)}
             </div>
             {hours.map((hour) => {
               const cell = byKey.get(`${index + 1}-${hour}`);
@@ -53,8 +60,8 @@ export function HeatmapGrid({ cells }: { cells: HeatmapCell[] }) {
                     </p>
                     <p className="text-xs opacity-80">
                       {cell
-                        ? `${formatDuration(cell.durationMs)} · ${cell.plays} plays`
-                        : "Nothing"}
+                        ? `${formatDuration(cell.durationMs)} · ${pluralize(cell.plays, "play")}`
+                        : t("common.nothing")}
                     </p>
                   </TooltipContent>
                 </Tooltip>

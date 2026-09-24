@@ -253,3 +253,35 @@ export function useSearch(term: string) {
     staleTime: 5 * 60_000,
   });
 }
+
+export function useForgotten(days: number, nb: number) {
+  const scope = useScope();
+  return useQuery({
+    queryKey: ["forgotten", scope, days, nb],
+    queryFn: () => data(api.forgotten(days, nb)),
+  });
+}
+
+export function useAchievements() {
+  const scope = useScope();
+  return useQuery({
+    queryKey: ["achievements", scope],
+    queryFn: () => data(api.achievements()),
+  });
+}
+
+export function useLeaderboard(range: Range, enabled: boolean) {
+  return useQuery({
+    queryKey: ["leaderboard", ...rangeKey(range)],
+    queryFn: () => data(api.leaderboard(range.start, range.end)),
+    enabled,
+  });
+}
+
+export function useGenres(range: Range, nb: number) {
+  const scope = useScope();
+  return useQuery({
+    queryKey: ["genres", scope, ...rangeKey(range), nb],
+    queryFn: () => data(api.genres(range.start, range.end, nb)),
+  });
+}

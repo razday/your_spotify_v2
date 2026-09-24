@@ -16,7 +16,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatDuration, pluralize } from "@/lib/format";
+import { formatDate, formatDuration, pluralize } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { usePeriod, usePeriodSearch } from "@/lib/period";
 import { useSessions } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -29,12 +30,12 @@ export default function SessionsPage() {
   return (
     <>
       <PageHeader
-        title="Sessions"
-        description={`Your longest listening sessions, breaks under 10 minutes included · ${period.label}`}
+        title={t("sessions.title")}
+        description={`${t("sessions.description")} · ${period.label}`}
         icon={<Hourglass />}
       />
       {!sessions.data ? (
-        <SectionCard title="Loading">
+        <SectionCard title={t("common.loading")}>
           <ListSkeleton rows={5} />
         </SectionCard>
       ) : sessions.data.length === 0 ? (
@@ -69,7 +70,7 @@ export default function SessionsPage() {
                     </span>
                     <div>
                       <p className="font-semibold">
-                        {format(start, "EEEE, PPP")}
+                        {formatDate(start, "EEEE PPP")}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {format(start, "HH:mm")} → {format(end, "HH:mm")}
@@ -106,7 +107,7 @@ export default function SessionsPage() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="font-medium">
-                            {track?.name ?? "Unknown track"}
+                            {track?.name ?? t("sessions.unknownTrack")}
                           </p>
                           <p className="text-xs opacity-80">
                             {format(new Date(play.info.played_at), "HH:mm")}

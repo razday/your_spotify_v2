@@ -3,7 +3,7 @@
   var mode = "follow";
   try {
     mode = localStorage.getItem("ys-theme") || "follow";
-  } catch (e) {}
+  } catch {}
   var dark =
     mode === "dark" ||
     (mode !== "light" &&

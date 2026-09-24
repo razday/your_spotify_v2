@@ -21,7 +21,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatPercent, initials } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { usePeriod, usePeriodSearch } from "@/lib/period";
+import { canUseSpotify } from "@/lib/spotify";
 import { cn } from "@/lib/utils";
 import { api } from "@/services/apis/api";
 import { selectAccounts } from "@/services/redux/modules/admin/selector";
@@ -73,7 +75,10 @@ export default function AffinityPage() {
   });
 
   const people = [
-    { id: me?._id ?? "", username: `${me?.username ?? "You"} (you)` },
+    {
+      id: me?._id ?? "",
+      username: t("affinity.you", { name: me?.username ?? t("common.you") }),
+    },
     ...accounts.filter((a) => selected.includes(a.id)),
   ];
 
@@ -82,23 +87,21 @@ export default function AffinityPage() {
       current.includes(id) ? current.filter((c) => c !== id) : [...current, id],
     );
 
-  const canPlaylist = me?.spotifyId && !me.spotifyLinkExpired;
+  const canPlaylist = canUseSpotify(me, false);
 
   return (
     <>
       <PageHeader
-        title="Affinity"
-        description={`What you and your friends listen to in common · ${period.label}`}
+        title={t("affinity.title")}
+        description={`${t("affinity.description")} · ${period.label}`}
         icon={<Users />}
       />
 
       <SectionCard
-        title="Who do you want to compare with?"
-        description="Pick one or more people">
+        title={t("affinity.pick")}
+        description={t("affinity.pickDescription")}>
         {accounts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            You are the only one on this instance for now.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("affinity.alone")}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {accounts.map((account) => {
@@ -131,9 +134,9 @@ export default function AffinityPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Tabs value={kind} onValueChange={(v) => setKind(v as Kind)}>
               <TabsList>
-                <TabsTrigger value="songs">Tracks</TabsTrigger>
-                <TabsTrigger value="artists">Artists</TabsTrigger>
-                <TabsTrigger value="albums">Albums</TabsTrigger>
+                <TabsTrigger value="songs">{t("search.tracks")}</TabsTrigger>
+                <TabsTrigger value="artists">{t("search.artists")}</TabsTrigger>
+                <TabsTrigger value="albums">{t("search.albums")}</TabsTrigger>
               </TabsList>
             </Tabs>
             <div className="flex items-center gap-2">
@@ -146,21 +149,19 @@ export default function AffinityPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <ToggleGroupItem value={CollaborativeMode.MINIMA}>
-                      Shared
+                      {t("affinity.shared")}
                     </ToggleGroupItem>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    Ranked by the smallest share: loved by everyone
-                  </TooltipContent>
+                  <TooltipContent>{t("affinity.sharedTooltip")}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <ToggleGroupItem value={CollaborativeMode.AVERAGE}>
-                      Average
+                      {t("affinity.average")}
                     </ToggleGroupItem>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Ranked by the average share of everyone
+                    {t("affinity.averageTooltip")}
                   </TooltipContent>
                 </Tooltip>
               </ToggleGroup>
@@ -183,14 +184,14 @@ export default function AffinityPage() {
                     )
                   }>
                   <ListPlus />
-                  Playlist
+                  {t("affinity.playlist")}
                 </Button>
               )}
             </div>
           </div>
 
           <SectionCard
-            title="In common"
+            title={t("affinity.inCommon")}
             description={
               <span className="flex flex-wrap gap-3">
                 {people.map((person, index) => (
@@ -210,8 +211,8 @@ export default function AffinityPage() {
               <ListSkeleton rows={8} />
             ) : !query.data || query.data.length === 0 ? (
               <EmptyState
-                title="Nothing in common yet"
-                description="Try a longer period or the Average mode."
+                title={t("affinity.nothing")}
+                description={t("affinity.nothingHint")}
               />
             ) : (
               <div className="flex flex-col">
@@ -288,8 +289,11 @@ export default function AffinityPage() {
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {person.username}: {count} plays (
-                                {formatPercent(share, 1)})
+                                {t("affinity.tooltip", {
+                                  name: person.username,
+                                  count,
+                                  percent: formatPercent(share, 1),
+                                })}
                               </TooltipContent>
                             </Tooltip>
                           );

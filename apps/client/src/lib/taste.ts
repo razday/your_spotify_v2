@@ -1,3 +1,4 @@
+import { translate } from "@/lib/i18n";
 import { ReleaseYear } from "@/services/apis/insights";
 
 // People tend to love most the music released around their late teens
@@ -82,13 +83,13 @@ export function summarizeTaste(
 
 export function tasteHeadline(summary: TasteSummary) {
   if (summary.freshness >= 0.6) {
-    return "Always on the latest releases";
+    return translate("taste.headline.fresh");
   }
   if (summary.nostalgia >= 0.6) {
-    return "An old soul with timeless taste";
+    return translate("taste.headline.oldSoul");
   }
   if (summary.nostalgia >= 0.35) {
-    return "A foot in the past, an ear on today";
+    return translate("taste.headline.mixed");
   }
-  return "Mostly modern, with a few throwbacks";
+  return translate("taste.headline.modern");
 }

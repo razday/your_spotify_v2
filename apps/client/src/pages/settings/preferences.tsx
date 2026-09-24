@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Laptop, Moon, Sun, Undo2 } from "lucide-react";
+import { Languages, Laptop, Moon, Sun, Undo2 } from "lucide-react";
 import { useSelector } from "react-redux";
 
 import { Cover } from "@/components/stats/cover";
@@ -14,6 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  LANGUAGES,
+  translate as t,
+  useSetLanguage,
+  useWantedLanguage,
+} from "@/lib/i18n";
 import { useSetThemeMode, useThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { api } from "@/services/apis/api";
@@ -23,17 +29,14 @@ import {
 } from "@/services/redux/modules/settings/thunk";
 import { selectBlacklistedArtists } from "@/services/redux/modules/user/selector";
 import { unblacklistArtist } from "@/services/redux/modules/user/thunk";
-import { DarkModeType, User } from "@/services/redux/modules/user/types";
+import {
+  DarkModeType,
+  Language,
+  User,
+} from "@/services/redux/modules/user/types";
 import { useAppDispatch } from "@/services/redux/tools";
 
-const THEMES: { value: DarkModeType; label: string; icon: React.ReactNode }[] =
-  [
-    { value: "light", label: "Light", icon: <Sun /> },
-    { value: "dark", label: "Dark", icon: <Moon /> },
-    { value: "follow", label: "System", icon: <Laptop /> },
-  ];
-
-const BROWSER_TIMEZONE = "__browser__";
+const DEFAULT_TIMEZONE = "__default__";
 
 function timezones(): string[] {
   try {
@@ -48,15 +51,24 @@ function timezones(): string[] {
 export function AppearanceCard() {
   const mode = useThemeMode();
   const setMode = useSetThemeMode();
+  const themes: {
+    value: DarkModeType;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    { value: "light", label: t("header.light"), icon: <Sun /> },
+    { value: "dark", label: t("header.dark"), icon: <Moon /> },
+    { value: "follow", label: t("header.system"), icon: <Laptop /> },
+  ];
   return (
     <SectionCard
-      title="Appearance"
-      description="Follows your system unless you pick a theme">
+      title={t("settings.appearance")}
+      description={t("settings.appearanceDescription")}>
       <RadioGroup
         value={mode}
         onValueChange={(value) => setMode(value as DarkModeType)}
         className="grid grid-cols-3 gap-3">
-        {THEMES.map((theme) => (
+        {themes.map((theme) => (
           <Label
             key={theme.value}
             htmlFor={`theme-${theme.value}`}
@@ -78,25 +90,65 @@ export function AppearanceCard() {
   );
 }
 
+export function LanguageCard() {
+  const language = useWantedLanguage();
+  const setLanguage = useSetLanguage();
+  return (
+    <SectionCard
+      title={t("settings.language")}
+      description={t("settings.languageDescription")}
+      action={<Languages className="size-4 text-muted-foreground" />}>
+      <RadioGroup
+        value={language}
+        onValueChange={(value) => setLanguage(value as Language)}
+        className="grid grid-cols-2 gap-3">
+        {LANGUAGES.map((option) => (
+          <Label
+            key={option.value}
+            htmlFor={`language-${option.value}`}
+            className={cn(
+              "flex cursor-pointer items-center justify-center gap-2 rounded-xl border p-4 transition-colors hover:bg-muted/60",
+              language === option.value && "border-primary bg-primary/8",
+            )}>
+            <RadioGroupItem
+              id={`language-${option.value}`}
+              value={option.value}
+              className="sr-only"
+            />
+            <span className="text-lg">
+              {option.value === "fr" ? "🇫🇷" : "🇬🇧"}
+            </span>
+            {option.label}
+          </Label>
+        ))}
+      </RadioGroup>
+    </SectionCard>
+  );
+}
+
 export function StatsPreferencesCard({ user }: { user: User }) {
   const dispatch = useAppDispatch();
   return (
-    <SectionCard title="Statistics" description="How your stats are computed">
+    <SectionCard
+      title={t("settings.statistics")}
+      description={t("settings.statisticsDescription")}>
       <div className="flex flex-col gap-5">
         <div className="grid gap-2">
-          <Label>Timezone</Label>
+          <Label>{t("settings.timezone")}</Label>
           <Select
-            value={user.settings.timezone ?? BROWSER_TIMEZONE}
+            value={user.settings.timezone ?? DEFAULT_TIMEZONE}
             onValueChange={(value) =>
               dispatch(
-                changeTimezone(value === BROWSER_TIMEZONE ? undefined : value),
+                changeTimezone(value === DEFAULT_TIMEZONE ? undefined : value),
               ).catch(() => {})
             }>
             <SelectTrigger className="w-full sm:w-80">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-80">
-              <SelectItem value={BROWSER_TIMEZONE}>Server default</SelectItem>
+              <SelectItem value={DEFAULT_TIMEZONE}>
+                {t("settings.timezoneDefault")}
+              </SelectItem>
               {timezones().map((tz) => (
                 <SelectItem key={tz} value={tz}>
                   {tz.replace(/_/g, " ")}
@@ -105,11 +157,11 @@ export function StatsPreferencesCard({ user }: { user: User }) {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Used to compute days, hours and streaks.
+            {t("settings.timezoneHint")}
           </p>
         </div>
         <div className="grid gap-2">
-          <Label>Rank tops by</Label>
+          <Label>{t("settings.rankBy")}</Label>
           <RadioGroup
             value={user.settings.metricUsed}
             onValueChange={(value) =>
@@ -117,17 +169,17 @@ export function StatsPreferencesCard({ user }: { user: User }) {
                 changeStatUnit(value as User["settings"]["metricUsed"]),
               ).catch(() => {})
             }
-            className="flex gap-6">
+            className="flex flex-wrap gap-6">
             <div className="flex items-center gap-2">
               <RadioGroupItem id="metric-number" value="number" />
               <Label htmlFor="metric-number" className="font-normal">
-                Number of plays
+                {t("settings.rankPlays")}
               </Label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem id="metric-duration" value="duration" />
               <Label htmlFor="metric-duration" className="font-normal">
-                Listening time
+                {t("settings.rankTime")}
               </Label>
             </div>
           </RadioGroup>
@@ -148,10 +200,12 @@ export function ExcludedArtistsCard() {
 
   return (
     <SectionCard
-      title="Excluded artists"
-      description="Their plays are ignored in every stat. Exclude an artist from the menu of an artist.">
+      title={t("settings.excluded")}
+      description={t("settings.excludedDescription")}>
       {ids.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No artist excluded.</p>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.noExcluded")}
+        </p>
       ) : (
         <div className="flex flex-col gap-1">
           {(artists.data ?? []).map((artist) => (
@@ -169,7 +223,7 @@ export function ExcludedArtistsCard() {
                   dispatch(unblacklistArtist(artist.id)).catch(() => {})
                 }>
                 <Undo2 />
-                Include again
+                {t("settings.includeAgain")}
               </Button>
             </div>
           ))}

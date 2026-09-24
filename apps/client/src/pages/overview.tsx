@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  formatDecimal,
   formatDuration,
   formatHour,
   formatNumber,
@@ -34,26 +35,28 @@ import {
   pickImage,
   pluralize,
 } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { usePeriod, usePeriodSearch } from "@/lib/period";
 import {
+  useHeatmap,
   useOverview,
   useRecentTracks,
   useSongsPer,
   useTimePer,
-  useHeatmap,
   useTopAlbums,
   useTopArtists,
   useTopTracks,
 } from "@/lib/queries";
 import { buildSeries, timesplitTooltipFormat } from "@/lib/series";
 import { selectUser } from "@/services/redux/modules/user/selector";
+import { SpotifyImage } from "@/services/types";
 
 function greeting() {
   const hour = new Date().getHours();
-  if (hour < 5) return "Late night";
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour < 5) return t("greeting.night");
+  if (hour < 12) return t("greeting.morning");
+  if (hour < 18) return t("greeting.afternoon");
+  return t("greeting.evening");
 }
 
 export default function OverviewPage() {
@@ -66,7 +69,7 @@ export default function OverviewPage() {
   const previous = useOverview(period.previous);
   const timePer = useTimePer(period, period.timesplit);
   const songsPer = useSongsPer(period, period.timesplit);
-  const perHour = useHeatmap(period);
+  const heatmap = useHeatmap(period);
   const topArtists = useTopArtists(period, 6);
   const topTracks = useTopTracks(period, 6);
   const topAlbums = useTopAlbums(period, 6);
@@ -93,7 +96,7 @@ export default function OverviewPage() {
         );
 
   const hourData = Array.from({ length: 24 }, (_, hour) => {
-    const durationMs = (perHour.data ?? [])
+    const durationMs = (heatmap.data ?? [])
       .filter((cell) => cell.hour === hour)
       .reduce((sum, cell) => sum + cell.durationMs, 0);
     return {
@@ -117,7 +120,7 @@ export default function OverviewPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
-          label="Listening time"
+          label={t("overview.listeningTime")}
           icon={<Clock3 />}
           loading={!o}
           value={o ? formatDuration(o.durationMs) : ""}
@@ -125,11 +128,13 @@ export default function OverviewPage() {
           hint={
             o &&
             o.activeDays > 0 &&
-            `${formatDuration(o.durationMs / o.activeDays)} per active day`
+            t("overview.perActiveDay", {
+              duration: formatDuration(o.durationMs / o.activeDays),
+            })
           }
         />
         <StatCard
-          label="Plays"
+          label={t("overview.plays")}
           icon={<Headphones />}
           accent="chart-2"
           loading={!o}
@@ -138,7 +143,7 @@ export default function OverviewPage() {
           hint={o && pluralize(o.activeDays, "active day")}
         />
         <StatCard
-          label="Tracks"
+          label={t("overview.tracks")}
           icon={<Music2 />}
           accent="chart-3"
           loading={!o}
@@ -146,10 +151,10 @@ export default function OverviewPage() {
           delta={
             o && <Delta current={o.uniqueTracks} previous={p?.uniqueTracks} />
           }
-          hint={o && `${pluralize(o.uniqueAlbums, "album")}`}
+          hint={o && pluralize(o.uniqueAlbums, "album")}
         />
         <StatCard
-          label="Artists"
+          label={t("overview.artists")}
           icon={<MicVocal />}
           accent="chart-4"
           loading={!o}
@@ -160,38 +165,50 @@ export default function OverviewPage() {
           hint={
             o &&
             o.uniqueArtists > 0 &&
-            `${(o.plays / o.uniqueArtists).toFixed(1)} plays per artist`
+            t("overview.playsPerArtist", {
+              value: formatDecimal(o.plays / o.uniqueArtists),
+            })
           }
         />
         <StatCard
-          label="Discoveries"
+          label={t("overview.discoveries")}
           icon={<Telescope />}
           accent="chart-5"
           loading={!o}
           value={o ? formatNumber(o.newArtists) : ""}
-          hint={o && `new artists · ${pluralize(o.newTracks, "new track")}`}
+          hint={
+            o &&
+            t("overview.discoveriesHint", {
+              tracks: pluralize(o.newTracks, "new track"),
+            })
+          }
         />
         <StatCard
-          label="Streak"
+          label={t("overview.streak")}
           icon={<Flame />}
           accent="chart-4"
           loading={!o}
           value={o ? pluralize(o.currentStreak, "day") : ""}
-          hint={o && `Best: ${pluralize(o.longestStreak.days, "day")} in a row`}
+          hint={
+            o &&
+            t("overview.bestStreak", {
+              days: pluralize(o.longestStreak.days, "day"),
+            })
+          }
         />
       </div>
 
       {noData ? (
         <EmptyState
-          title="No listening in this period"
-          description="Try a longer period with the selector at the top right. If you just linked Spotify, your first plays arrive within a few minutes."
+          title={t("overview.noData")}
+          description={t("overview.noDataHint")}
         />
       ) : (
         <>
           <div className="grid gap-4 xl:grid-cols-3">
             <SectionCard
               className="xl:col-span-2"
-              title="Listening over time"
+              title={t("overview.trend")}
               description={period.label}
               action={
                 <Tabs
@@ -199,10 +216,10 @@ export default function OverviewPage() {
                   onValueChange={(v) => setMetric(v as "time" | "plays")}>
                   <TabsList className="h-8">
                     <TabsTrigger value="time" className="text-xs">
-                      Minutes
+                      {t("unit.minutes")}
                     </TabsTrigger>
                     <TabsTrigger value="plays" className="text-xs">
-                      Plays
+                      {t("unit.plays")}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -215,12 +232,12 @@ export default function OverviewPage() {
                     metric === "time"
                       ? {
                           key: "minutes",
-                          label: "Minutes",
+                          label: t("unit.minutes"),
                           color: "var(--chart-1)",
                         }
                       : {
                           key: "plays",
-                          label: "Plays",
+                          label: t("unit.plays"),
                           color: "var(--chart-2)",
                         },
                   ]}
@@ -241,7 +258,7 @@ export default function OverviewPage() {
 
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             <SectionCard
-              title="Top artists"
+              title={t("overview.topArtists")}
               action={<SeeAll to={`/top/artists${periodSearch}`} />}>
               {topArtists.data ? (
                 <div className="flex flex-col">
@@ -263,7 +280,7 @@ export default function OverviewPage() {
               )}
             </SectionCard>
             <SectionCard
-              title="Top tracks"
+              title={t("overview.topTracks")}
               action={<SeeAll to={`/top/tracks${periodSearch}`} />}>
               {topTracks.data ? (
                 <div className="flex flex-col">
@@ -285,7 +302,7 @@ export default function OverviewPage() {
             </SectionCard>
             <SectionCard
               className="lg:col-span-2 xl:col-span-1"
-              title="Top albums"
+              title={t("overview.topAlbums")}
               action={<SeeAll to={`/top/albums${periodSearch}`} />}>
               {topAlbums.data ? (
                 <div className="grid grid-cols-3 gap-3">
@@ -321,17 +338,21 @@ export default function OverviewPage() {
           <div className="grid gap-4 xl:grid-cols-3">
             <SectionCard
               className="xl:col-span-2"
-              title="When you listen"
+              title={t("overview.whenYouListen")}
               description={
                 o?.favoriteHour !== null && o?.favoriteHour !== undefined
-                  ? `Your favorite hour is ${formatHour(o.favoriteHour)}`
-                  : "Minutes per hour of the day"
+                  ? t("overview.favoriteHour", {
+                      hour: formatHour(o.favoriteHour),
+                    })
+                  : t("overview.minutesPerHour")
               }
-              action={<SeeAll to={`/habits${periodSearch}`} label="Habits" />}>
-              {perHour.data ? (
+              action={
+                <SeeAll to={`/habits${periodSearch}`} label={t("nav.habits")} />
+              }>
+              {heatmap.data ? (
                 <BarsChart
                   data={hourData}
-                  label="Minutes"
+                  label={t("unit.minutes")}
                   valueFormatter={(v) => formatNumber(v)}
                 />
               ) : (
@@ -339,9 +360,12 @@ export default function OverviewPage() {
               )}
             </SectionCard>
             <SectionCard
-              title="Recently played"
+              title={t("overview.recentlyPlayed")}
               action={
-                <SeeAll to={`/history${periodSearch}`} label="History" />
+                <SeeAll
+                  to={`/history${periodSearch}`}
+                  label={t("nav.history")}
+                />
               }>
               {recent.data ? (
                 <div className="flex flex-col">
@@ -376,15 +400,22 @@ export default function OverviewPage() {
   );
 }
 
-function SeeAll({ to, label = "See all" }: { to: string; label?: string }) {
+function SeeAll({ to, label }: { to: string; label?: string }) {
   return (
     <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
       <Link to={to}>
-        {label}
+        {label ?? t("common.seeAll")}
         <ArrowRight />
       </Link>
     </Button>
   );
+}
+
+interface SpotlightArtist {
+  artist: { id: string; name: string; images: SpotifyImage[] };
+  count: number;
+  duration_ms: number;
+  differents: number;
 }
 
 function TopArtistSpotlight({
@@ -393,18 +424,7 @@ function TopArtistSpotlight({
   periodSearch,
   totalMs,
 }: {
-  artist:
-    | {
-        artist: {
-          id: string;
-          name: string;
-          images: { url: string; width: number; height: number }[];
-        };
-        count: number;
-        duration_ms: number;
-        differents: number;
-      }
-    | undefined;
+  artist: SpotlightArtist | undefined;
   loading: boolean;
   periodSearch: string;
   totalMs: number | undefined;
@@ -424,7 +444,7 @@ function TopArtistSpotlight({
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
       <div className="relative flex h-full min-h-72 flex-col justify-end gap-2 p-6 text-white">
         <span className="w-fit rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium backdrop-blur">
-          #1 artist
+          {t("overview.topArtist")}
         </span>
         {loading ? (
           <div className="h-8 w-40 animate-pulse rounded bg-white/20" />
@@ -440,12 +460,14 @@ function TopArtistSpotlight({
               {pluralize(artist.count, "play")} ·{" "}
               {pluralize(artist.differents, "track")}
               {totalMs
-                ? ` · ${Math.round((artist.duration_ms / totalMs) * 100)}% of your time`
+                ? ` · ${t("overview.shareOfTime", {
+                    percent: Math.round((artist.duration_ms / totalMs) * 100),
+                  })}`
                 : ""}
             </p>
           </>
         ) : (
-          <p className="text-sm text-white/80">No artist yet</p>
+          <p className="text-sm text-white/80">{t("overview.noArtist")}</p>
         )}
       </div>
     </Card>

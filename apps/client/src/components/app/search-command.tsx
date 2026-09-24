@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { useT } from "@/lib/i18n";
 import { usePeriodSearch } from "@/lib/period";
 import { useSearch } from "@/lib/queries";
 
@@ -25,6 +26,7 @@ function useDebounced<T>(value: T, delay: number) {
 }
 
 export function SearchCommand() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
   const debounced = useDebounced(term, 250);
@@ -63,7 +65,7 @@ export function SearchCommand() {
         className="h-8 w-8 justify-start gap-2 px-2 font-normal text-muted-foreground sm:w-56 sm:px-3"
         onClick={() => setOpen(true)}>
         <Search className="size-4" />
-        <span className="hidden sm:inline">Search...</span>
+        <span className="hidden sm:inline">{t("header.search")}</span>
         <kbd className="pointer-events-none ml-auto hidden h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium select-none sm:flex">
           Ctrl K
         </kbd>
@@ -71,24 +73,24 @@ export function SearchCommand() {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
-        title="Search"
-        description="Search an artist, a track or an album"
+        title={t("search.title")}
+        description={t("search.description")}
         shouldFilter={false}>
         <CommandInput
-          placeholder="Search an artist, a track or an album..."
+          placeholder={t("search.placeholder")}
           value={term}
           onValueChange={setTerm}
         />
         <CommandList>
           {debounced.trim().length < 2 ? (
-            <CommandEmpty>Type at least 2 characters.</CommandEmpty>
+            <CommandEmpty>{t("search.minLength")}</CommandEmpty>
           ) : !hasResults ? (
             <CommandEmpty>
-              {isFetching ? "Searching..." : "No results found."}
+              {isFetching ? t("search.searching") : t("search.noResult")}
             </CommandEmpty>
           ) : null}
           {data && data.artists.length > 0 && (
-            <CommandGroup heading="Artists">
+            <CommandGroup heading={t("search.artists")}>
               {data.artists.map((artist) => (
                 <CommandItem
                   key={artist.id}
@@ -102,7 +104,7 @@ export function SearchCommand() {
             </CommandGroup>
           )}
           {data && data.tracks.length > 0 && (
-            <CommandGroup heading="Tracks">
+            <CommandGroup heading={t("search.tracks")}>
               {data.tracks.map((track) => (
                 <CommandItem
                   key={track.id}
@@ -121,7 +123,7 @@ export function SearchCommand() {
             </CommandGroup>
           )}
           {data && data.albums.length > 0 && (
-            <CommandGroup heading="Albums">
+            <CommandGroup heading={t("search.albums")}>
               {data.albums.map((album) => (
                 <CommandItem
                   key={album.id}

@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 
+import { getDateLocale, MessageKey, translate, useLanguage } from "@/lib/i18n";
 import { selectUser } from "@/services/redux/modules/user/selector";
 import { Timesplit } from "@/services/types";
 
@@ -24,22 +25,19 @@ export type PresetKey =
   | "365d"
   | "all";
 
-export interface PresetDefinition {
-  key: PresetKey;
-  label: string;
-  short: string;
-}
-
-export const PRESETS: PresetDefinition[] = [
-  { key: "today", label: "Today", short: "Today" },
-  { key: "7d", label: "Last 7 days", short: "7 days" },
-  { key: "30d", label: "Last 30 days", short: "30 days" },
-  { key: "90d", label: "Last 3 months", short: "3 months" },
-  { key: "month", label: "This month", short: "This month" },
-  { key: "year", label: "This year", short: "This year" },
-  { key: "365d", label: "Last 12 months", short: "12 months" },
-  { key: "all", label: "All time", short: "All time" },
+export const PRESETS: { key: PresetKey }[] = [
+  { key: "today" },
+  { key: "7d" },
+  { key: "30d" },
+  { key: "90d" },
+  { key: "month" },
+  { key: "year" },
+  { key: "365d" },
+  { key: "all" },
 ];
+
+export const presetLabel = (key: PresetKey) =>
+  translate(`period.${key}` as MessageKey);
 
 export const DEFAULT_PRESET: PresetKey = "30d";
 
@@ -128,6 +126,7 @@ export function usePeriod() {
     ? new Date(user.firstListenedAt)
     : null;
 
+  const language = useLanguage();
   const periodParam = params.get("period");
   const from = params.get("from");
   const to = params.get("to");
@@ -142,20 +141,19 @@ export function usePeriod() {
           "custom",
           start,
           end,
-          `${format(start, "PP")} – ${format(end, "PP")}`,
+          `${format(start, "PP", { locale: getDateLocale() })} – ${format(end, "PP", { locale: getDateLocale() })}`,
         );
       }
     }
     const key = isPreset(periodParam) ? periodParam : DEFAULT_PRESET;
-    const preset = PRESETS.find((p) => p.key === key)!;
     const { start, end } = resolvePreset(
       key,
       firstTime !== null ? new Date(firstTime) : null,
     );
-    return buildPeriod(key, start, end, preset.label);
+    return buildPeriod(key, start, end, presetLabel(key));
     // The minute changes the query keys on purpose (fresh data)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from, to, periodParam, firstTime, currentMinute().getTime()]);
+  }, [from, to, periodParam, firstTime, language, currentMinute().getTime()]);
 
   const setPreset = (key: PresetKey) => {
     const next = new URLSearchParams(params);

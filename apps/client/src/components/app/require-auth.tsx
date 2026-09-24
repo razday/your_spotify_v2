@@ -9,6 +9,8 @@ import {
 } from "react-router-dom";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
+import { hasActiveAccount } from "@/lib/spotify";
 import { LinkSpotifyScreen } from "@/pages/auth/link-spotify";
 import { getAuthErrorMessage } from "@/services/authErrors";
 import {
@@ -29,7 +31,14 @@ function readLinkLater() {
 }
 
 // Pages that are not about a period of time
-const NO_PERIOD = ["/settings", "/artist/", "/album/", "/track/", "/recap"];
+const NO_PERIOD = [
+  "/settings",
+  "/artist/",
+  "/album/",
+  "/track/",
+  "/recap",
+  "/achievements",
+];
 
 export function FullPageLoader() {
   return (
@@ -40,20 +49,23 @@ export function FullPageLoader() {
 }
 
 export function RequireAuth() {
+  const t = useT();
   const user = useSelector(selectUser);
   const loaded = useSelector(selectLoaded);
   const location = useLocation();
   const [params, setParams] = useSearchParams();
   const [linkLater, setLinkLater] = useState(readLinkLater);
 
-  const needsSpotifyLink =
-    !!user && !user.isGuest && (!user.spotifyId || user.spotifyLinkExpired);
+  // Nothing is collected without an active Spotify account
+  const needsSpotifyLink = !!user && !user.isGuest && !hasActiveAccount(user);
+  // Accounts exist but none works anymore: the stats are still readable
+  const onlyExpired = needsSpotifyLink && user.spotifyAccounts.length > 0;
 
   // Back from a Spotify authorization
   useEffect(() => {
     const linkError = params.get("link_error");
     if (params.get("spotify") === "linked") {
-      toast.success("Your Spotify account is linked");
+      toast.success(t("accounts.linkedToast"));
       params.delete("spotify");
       setParams(params, { replace: true });
     } else if (linkError && user && !needsSpotifyLink) {
@@ -62,7 +74,7 @@ export function RequireAuth() {
       params.delete("retry_after");
       setParams(params, { replace: true });
     }
-  }, [params, setParams, user, needsSpotifyLink]);
+  }, [params, setParams, user, needsSpotifyLink, t]);
 
   if (!loaded) {
     return <FullPageLoader />;
@@ -72,16 +84,13 @@ export function RequireAuth() {
   }
 
   const onSettings = location.pathname.startsWith("/settings");
-  if (
-    needsSpotifyLink &&
-    !onSettings &&
-    (!user.spotifyLinkExpired || !linkLater)
-  ) {
+  if (needsSpotifyLink && !onSettings && (!onlyExpired || !linkLater)) {
     return (
       <LinkSpotifyScreen
         user={user}
+        expired={onlyExpired}
         onLater={
-          user.spotifyLinkExpired
+          onlyExpired
             ? () => {
                 try {
                   sessionStorage.setItem(LINK_LATER_KEY, "true");

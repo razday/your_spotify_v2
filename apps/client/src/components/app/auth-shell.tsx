@@ -1,6 +1,8 @@
 import { AudioLines } from "lucide-react";
 import { ReactNode } from "react";
 
+import { translate as t } from "@/lib/i18n";
+
 import { ThemeToggle } from "./theme-toggle";
 
 const BARS = [38, 62, 45, 80, 55, 92, 70, 48, 85, 60, 74, 40, 66, 88, 52];
@@ -28,15 +30,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="relative flex h-full flex-col justify-between p-10 text-white">
           <div className="max-w-md">
             <p className="text-sm font-medium tracking-wide text-white/70 uppercase">
-              Your listening, decoded
+              {t("auth.brandKicker")}
             </p>
             <h2 className="mt-3 text-4xl leading-tight font-semibold">
-              Every play tells a story. See yours.
+              {t("auth.brandTitle")}
             </h2>
-            <p className="mt-4 text-white/80">
-              Tops, habits, discoveries, streaks, your musical age and a yearly
-              recap, all from your own Spotify history.
-            </p>
+            <p className="mt-4 text-white/80">{t("auth.brandText")}</p>
           </div>
           <div className="flex h-48 items-end gap-2">
             {BARS.map((height, index) => (

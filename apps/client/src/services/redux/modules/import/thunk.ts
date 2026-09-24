@@ -1,3 +1,4 @@
+import { translate } from "../../../../lib/i18n";
 import { api } from "../../../apis/api";
 import { myAsyncThunk } from "../../tools";
 import { alertMessage } from "../message/reducer";
@@ -35,7 +36,7 @@ export const startImportPrivacy = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "success",
-        message: "Successfully started importing",
+        message: translate("toast.importStarted"),
       }),
     );
   } catch (e: any) {
@@ -43,15 +44,14 @@ export const startImportPrivacy = myAsyncThunk<
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: "An import is already running on this account",
+          message: translate("toast.importRunning"),
         }),
       );
     } else if (e?.response?.data?.code === "IMPORT_INIT_FAILED") {
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message:
-            "The initialization failed, maybe your files are wrongly formatted",
+          message: translate("toast.importInitFailed"),
         }),
       );
     }
@@ -79,7 +79,7 @@ export const startImportFullPrivacy = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "success",
-        message: "Successfully started importing",
+        message: translate("toast.importStarted"),
       }),
     );
   } catch (e: any) {
@@ -87,15 +87,14 @@ export const startImportFullPrivacy = myAsyncThunk<
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: "An import is already running on this account",
+          message: translate("toast.importRunning"),
         }),
       );
     } else if (e?.response?.data?.code === "IMPORT_INIT_FAILED") {
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message:
-            "The initialization failed, maybe your files are wrongly formatted",
+          message: translate("toast.importInitFailed"),
         }),
       );
     }
@@ -111,7 +110,7 @@ export const cleanupImport = myAsyncThunk<void, string>(
       tapi.dispatch(
         alertMessage({
           level: "success",
-          message: "Successfully cleaned up import",
+          message: translate("toast.importCleaned"),
         }),
       );
       tapi.dispatch(getImports(true)).catch(console.error);
@@ -119,7 +118,7 @@ export const cleanupImport = myAsyncThunk<void, string>(
       tapi.dispatch(
         alertMessage({
           level: "success",
-          message: "Could not clean up your import",
+          message: translate("toast.importCleanError"),
         }),
       );
     }

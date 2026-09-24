@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { useId } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
@@ -8,6 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatDate } from "@/lib/format";
 import { SeriesPoint } from "@/lib/series";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +76,7 @@ export function TrendChart({
             <ChartTooltipContent
               labelFormatter={(_, payload) => {
                 const point = payload?.[0]?.payload as SeriesPoint | undefined;
-                return point ? format(point.date, tooltipDateFormat) : "";
+                return point ? formatDate(point.date, tooltipDateFormat) : "";
               }}
               formatter={(value, name) => (
                 <div className="flex w-full items-center justify-between gap-4">

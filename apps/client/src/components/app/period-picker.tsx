@@ -10,10 +10,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { PRESETS, usePeriod } from "@/lib/period";
+import { useT } from "@/lib/i18n";
+import { presetLabel, PRESETS, usePeriod } from "@/lib/period";
 import { cn } from "@/lib/utils";
 
 export function PeriodPicker({ className }: { className?: string }) {
+  const t = useT();
   const { period, setPreset, setCustom } = usePeriod();
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<DateRange | undefined>(
@@ -38,7 +40,7 @@ export function PeriodPicker({ className }: { className?: string }) {
         <div className="flex flex-col sm:flex-row">
           <div className="flex flex-col gap-0.5 p-2 sm:w-44">
             <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">
-              Period
+              {t("period.title")}
             </p>
             {PRESETS.map((preset) => (
               <Button
@@ -51,7 +53,7 @@ export function PeriodPicker({ className }: { className?: string }) {
                   setRange(undefined);
                   setOpen(false);
                 }}>
-                {preset.label}
+                {presetLabel(preset.key)}
                 {period.key === preset.key && (
                   <Check className="size-4 text-primary" />
                 )}
@@ -65,7 +67,7 @@ export function PeriodPicker({ className }: { className?: string }) {
           <Separator className="sm:hidden" />
           <div className="p-2">
             <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">
-              Custom range
+              {t("period.custom")}
             </p>
             <Calendar
               mode="range"
@@ -85,7 +87,7 @@ export function PeriodPicker({ className }: { className?: string }) {
                     setOpen(false);
                   }
                 }}>
-                Apply range
+                {t("period.apply")}
               </Button>
             </div>
           </div>

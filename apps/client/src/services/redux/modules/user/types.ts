@@ -2,25 +2,33 @@ import { Interval } from "../../../intervals";
 
 export type DarkModeType = "light" | "dark" | "follow";
 
+export type SpotifyAccountStatus = "active" | "expired" | "untracked";
+
 export interface SpotifyAccount {
+  id: string;
+  spotifyId: string;
   displayName: string | null;
   email: string | null;
   product: string | null;
+  image: string | null;
+  status: SpotifyAccountStatus;
+  primary: boolean;
+  lastSyncAt: string | null;
+  lastPlayAt: string | null;
+  linkedAt: string;
+  plays: number;
+  missingScopes: string[];
 }
+
+export type Language = "en" | "fr";
 
 export interface User {
   username: string;
   admin: boolean;
   hasPassword: boolean;
-  spotifyId: string | null;
-  spotifyAccount: SpotifyAccount | null;
-  spotifyLinkExpired: boolean;
+  spotifyAccounts: SpotifyAccount[];
   _id: string;
   id: string;
-  expiresIn: number;
-  accessToken: string;
-  refreshToken: string;
-  lastTimestamp: number;
   tracks: string[];
   settings: {
     historyLine: boolean;
@@ -31,6 +39,7 @@ export interface User {
     timezone: string | null | undefined;
     dateFormat: string;
     blacklistedArtists: string[] | undefined;
+    language: Language | undefined;
   };
   publicToken: string | null;
   firstListenedAt: string;

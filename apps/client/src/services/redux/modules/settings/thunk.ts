@@ -1,3 +1,4 @@
+import { translate } from "../../../../lib/i18n";
 import { api } from "../../../apis/api";
 import { GlobalPreferences } from "../../../types";
 import { myAsyncThunk } from "../../tools";
@@ -29,7 +30,7 @@ export const getSettings = myAsyncThunk<GlobalPreferences | null, void>(
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: "The web application can't communicate with the server",
+          message: translate("toast.serverUnreachable"),
         }),
       );
     }
@@ -48,7 +49,9 @@ export const changeRegistrations = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "success",
-        message: `Updated registration status to ${newStatus}`,
+        message: translate(
+          newStatus ? "toast.registrationsOn" : "toast.registrationsOff",
+        ),
       }),
     );
     return result.data;
@@ -57,7 +60,7 @@ export const changeRegistrations = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "error",
-        message: `Could not update registration status to ${newStatus}`,
+        message: translate("toast.settingError"),
       }),
     );
     throw e;
@@ -74,7 +77,7 @@ export const enableAffinity = myAsyncThunk<GlobalPreferences | null, boolean>(
       tapi.dispatch(
         alertMessage({
           level: "success",
-          message: `${newStatus ? "Enabled" : "Disabled"} affinity feature`,
+          message: translate(newStatus ? "toast.socialOn" : "toast.socialOff"),
         }),
       );
       return result.data;
@@ -83,7 +86,7 @@ export const enableAffinity = myAsyncThunk<GlobalPreferences | null, boolean>(
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: `Could not ${newStatus ? "enabled" : "disable"} affinity`,
+          message: translate("toast.settingError"),
         }),
       );
       throw e;
@@ -100,9 +103,7 @@ export const changeTimezone = myAsyncThunk<void, User["settings"]["timezone"]>(
       tapi.dispatch(
         alertMessage({
           level: "success",
-          message: `Updated timezone status to ${
-            newTimezone ?? "follow backend timezone"
-          }`,
+          message: translate("toast.settingSaved"),
         }),
       );
     } catch (e) {
@@ -110,7 +111,7 @@ export const changeTimezone = myAsyncThunk<void, User["settings"]["timezone"]>(
       tapi.dispatch(
         alertMessage({
           level: "error",
-          message: `Could not update timezone to ${newTimezone}`,
+          message: translate("toast.settingError"),
         }),
       );
       throw e;
@@ -128,7 +129,7 @@ export const changeDateFormat = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "success",
-        message: `Updated date format to ${newDateFormat}`,
+        message: translate("toast.settingSaved"),
       }),
     );
   } catch (e) {
@@ -136,7 +137,7 @@ export const changeDateFormat = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "error",
-        message: `Could not update date format to ${newDateFormat}`,
+        message: translate("toast.settingError"),
       }),
     );
     throw e;
@@ -153,7 +154,7 @@ export const changeStatUnit = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "success",
-        message: `Updated stat measurement to ${newStatMeasurement}`,
+        message: translate("toast.settingSaved"),
       }),
     );
   } catch (e) {
@@ -161,7 +162,7 @@ export const changeStatUnit = myAsyncThunk<
     tapi.dispatch(
       alertMessage({
         level: "error",
-        message: `Could not update stat measurement to ${newStatMeasurement}`,
+        message: translate("toast.settingError"),
       }),
     );
     throw e;

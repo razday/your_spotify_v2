@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { translate as t } from "@/lib/i18n";
 import { api } from "@/services/apis/api";
 import { getRequestErrorMessage } from "@/services/authErrors";
 import { selectSettings } from "@/services/redux/modules/settings/selector";
@@ -37,7 +38,7 @@ export default function RegisterPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (password !== confirmation) {
-      setError("The passwords do not match.");
+      setError(t("auth.mismatch"));
       return;
     }
     setLoading(true);
@@ -58,13 +59,13 @@ export default function RegisterPage() {
       <AuthShell>
         <div className="flex flex-col gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Registrations are closed
+            {t("auth.registrationsClosed")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            An admin of this instance can open them again from the settings.
+            {t("auth.registrationsClosedHint")}
           </p>
           <Button asChild variant="outline" className="mt-2 w-fit">
-            <Link to="/login">Back to login</Link>
+            <Link to="/login">{t("auth.backToLogin")}</Link>
           </Button>
         </div>
       </AuthShell>
@@ -76,10 +77,10 @@ export default function RegisterPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Create your account
+            {t("auth.registerTitle")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            You will link your Spotify account right after.
+            {t("auth.registerSubtitle")}
           </p>
         </div>
         {error && (
@@ -90,7 +91,7 @@ export default function RegisterPage() {
         )}
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t("auth.username")}</Label>
             <Input
               id="username"
               autoComplete="username"
@@ -103,7 +104,7 @@ export default function RegisterPage() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("auth.password")}</Label>
             <Input
               id="password"
               type="password"
@@ -115,11 +116,11 @@ export default function RegisterPage() {
               required
             />
             <p className="text-xs text-muted-foreground">
-              At least {PASSWORD_MIN_LENGTH} characters.
+              {t("auth.passwordHint", { count: PASSWORD_MIN_LENGTH })}
             </p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="confirmation">Confirm password</Label>
+            <Label htmlFor="confirmation">{t("auth.confirmPassword")}</Label>
             <Input
               id="confirmation"
               type="password"
@@ -131,15 +132,15 @@ export default function RegisterPage() {
           </div>
           <Button type="submit" disabled={loading} className="w-full">
             {loading && <Loader2 className="animate-spin" />}
-            Create my account
+            {t("auth.createMyAccount")}
           </Button>
         </form>
         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t("auth.haveAccount")}{" "}
           <Link
             to="/login"
             className="font-medium text-primary underline-offset-4 hover:underline">
-            Log in
+            {t("auth.login")}
           </Link>
         </p>
       </div>

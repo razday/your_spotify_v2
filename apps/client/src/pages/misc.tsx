@@ -2,6 +2,7 @@ import { Compass, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { translate as t } from "@/lib/i18n";
 
 export function NotFoundPage() {
   return (
@@ -10,13 +11,13 @@ export function NotFoundPage() {
         <Compass className="size-7" />
       </div>
       <div>
-        <h1 className="text-2xl font-semibold">Page not found</h1>
+        <h1 className="text-2xl font-semibold">{t("error.notFound")}</h1>
         <p className="text-sm text-muted-foreground">
-          This page does not exist, or not anymore.
+          {t("error.notFoundHint")}
         </p>
       </div>
       <Button asChild>
-        <Link to="/">Back to the overview</Link>
+        <Link to="/">{t("error.backOverview")}</Link>
       </Button>
     </div>
   );
@@ -29,15 +30,8 @@ export function ApiEndpointErrorPage() {
       <div className="flex size-12 items-center justify-center rounded-xl bg-destructive/12 text-destructive">
         <TriangleAlert className="size-6" />
       </div>
-      <h1 className="text-2xl font-semibold">
-        API endpoint is not set up correctly
-      </h1>
-      <p className="text-muted-foreground">
-        This request should have reached the backend, but was handled by the
-        frontend instead. This is usually because the <code>API_ENDPOINT</code>{" "}
-        variable points to the frontend instead of the backend. Check the
-        configuration of the web container.
-      </p>
+      <h1 className="text-2xl font-semibold">{t("error.apiTitle")}</h1>
+      <p className="text-muted-foreground">{t("error.apiText")}</p>
     </div>
   );
 }

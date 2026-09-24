@@ -18,8 +18,10 @@ import {
   formatHour,
   formatNumber,
   pluralize,
-  WEEKDAYS,
+  weekdayNames,
+  weekdayShort,
 } from "@/lib/format";
+import { translate as t } from "@/lib/i18n";
 import { usePeriod } from "@/lib/period";
 import { listeningProfile } from "@/lib/profile";
 import {
@@ -46,8 +48,8 @@ export default function HabitsPage() {
   const calendar = useCalendar(calendarRange);
 
   const cells = heatmap.data ?? [];
-  const byWeekday = WEEKDAYS.map((day, index) => ({
-    label: day.slice(0, 3),
+  const byWeekday = weekdayNames().map((day, index) => ({
+    label: weekdayShort(day),
     tooltipLabel: day,
     value: Math.round(
       cells
@@ -93,8 +95,8 @@ export default function HabitsPage() {
   return (
     <>
       <PageHeader
-        title="Habits"
-        description={`When and how you listen · ${period.label}`}
+        title={t("habits.title")}
+        description={`${t("habits.description")} · ${period.label}`}
         icon={<CalendarClock />}
       />
 
@@ -116,25 +118,29 @@ export default function HabitsPage() {
 
           <div className="grid gap-4 md:grid-cols-3">
             <MiniStat
-              label="Busiest day"
+              label={t("habits.busiestDay")}
               value={o?.busiestDay ? formatDate(o.busiestDay.date, "PPP") : "—"}
               hint={
                 o?.busiestDay
-                  ? `${formatDuration(o.busiestDay.durationMs)} of music`
+                  ? t("habits.ofMusic", {
+                      duration: formatDuration(o.busiestDay.durationMs),
+                    })
                   : undefined
               }
             />
             <MiniStat
-              label="Favorite weekday"
+              label={t("habits.favoriteWeekday")}
               value={bestWeekday.value > 0 ? bestWeekday.tooltipLabel : "—"}
               hint={
                 bestWeekday.value > 0
-                  ? `${formatNumber(bestWeekday.value)} minutes`
+                  ? t("habits.minutes", {
+                      value: formatNumber(bestWeekday.value),
+                    })
                   : undefined
               }
             />
             <MiniStat
-              label="Longest streak"
+              label={t("habits.longestStreak")}
               value={o ? pluralize(o.longestStreak.days, "day") : "—"}
               hint={
                 o?.longestStreak.start && o.longestStreak.end
@@ -145,11 +151,11 @@ export default function HabitsPage() {
           </div>
 
           <SectionCard
-            title="Listening calendar"
+            title={t("habits.calendar")}
             description={
               calendarRange.start === period.start
                 ? period.label
-                : "Last 12 months"
+                : t("habits.last12Months")
             }>
             {calendar.data ? (
               <CalendarHeatmap
@@ -163,28 +169,32 @@ export default function HabitsPage() {
           </SectionCard>
 
           <SectionCard
-            title="Week at a glance"
-            description="Listening time per day of the week and hour">
+            title={t("habits.week")}
+            description={t("habits.weekDescription")}>
             {heatmap.data ? <HeatmapGrid cells={cells} /> : <ChartSkeleton />}
           </SectionCard>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <SectionCard title="By day of the week" description="Minutes">
+            <SectionCard
+              title={t("habits.byWeekday")}
+              description={t("unit.minutes")}>
               {heatmap.data ? (
                 <BarsChart
                   data={byWeekday}
-                  label="Minutes"
+                  label={t("unit.minutes")}
                   valueFormatter={formatNumber}
                 />
               ) : (
                 <ChartSkeleton className="h-56" />
               )}
             </SectionCard>
-            <SectionCard title="By hour of the day" description="Minutes">
+            <SectionCard
+              title={t("habits.byHour")}
+              description={t("unit.minutes")}>
               {heatmap.data ? (
                 <BarsChart
                   data={byHour}
-                  label="Minutes"
+                  label={t("unit.minutes")}
                   valueFormatter={formatNumber}
                   color="var(--chart-2)"
                 />
@@ -195,15 +205,23 @@ export default function HabitsPage() {
           </div>
 
           <SectionCard
-            title="Variety"
-            description="Different tracks and artists you played">
+            title={t("habits.variety")}
+            description={t("habits.varietyDescription")}>
             {songsPer.data && artistsPer.data ? (
               <TrendChart
                 data={variety}
                 tooltipDateFormat={timesplitTooltipFormat[period.timesplit]}
                 series={[
-                  { key: "tracks", label: "Tracks", color: "var(--chart-1)" },
-                  { key: "artists", label: "Artists", color: "var(--chart-3)" },
+                  {
+                    key: "tracks",
+                    label: t("overview.tracks"),
+                    color: "var(--chart-1)",
+                  },
+                  {
+                    key: "artists",
+                    label: t("overview.artists"),
+                    color: "var(--chart-3)",
+                  },
                 ]}
                 valueFormatter={formatNumber}
               />

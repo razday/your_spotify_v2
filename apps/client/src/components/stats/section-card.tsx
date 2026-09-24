@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { translate as t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface SectionCardProps {
@@ -44,8 +45,8 @@ export function SectionCard({
 }
 
 export function EmptyState({
-  title = "Nothing to show yet",
-  description = "No listening recorded for this period.",
+  title = t("common.emptyTitle"),
+  description = t("common.emptyDescription"),
   icon,
   className,
   children,

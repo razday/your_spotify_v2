@@ -92,3 +92,63 @@ export interface ItemTimeline {
   hours: { hour: number; plays: number }[];
   weekdays: { weekday: number; plays: number }[];
 }
+
+export interface SpotifyAppInfo {
+  clientId: string | null;
+  configured: boolean;
+  source: "settings" | "environment";
+  environmentClientId: string | null;
+  redirectUri: string;
+}
+
+export interface Forgotten {
+  artists: {
+    artist: LightArtist;
+    plays: number;
+    durationMs: number;
+    lastListenedAt: string;
+  }[];
+  tracks: (TrackWithContext & {
+    plays: number;
+    durationMs: number;
+    lastListenedAt: string;
+  })[];
+}
+
+export interface AchievementMetrics {
+  plays: number;
+  durationMs: number;
+  artists: number;
+  tracks: number;
+  albums: number;
+  activeDays: number;
+  longestStreak: number;
+  currentStreak: number;
+  maxArtistPlaysInDay: number;
+  maxTrackPlaysInDay: number;
+  maxDayDurationMs: number;
+  nightPlays: number;
+  morningPlays: number;
+  decades: number;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  plays: number;
+  durationMs: number;
+  artists: number;
+  topArtist: LightArtist | null;
+  // 0..1, null for yourself
+  compatibility: number | null;
+}
+
+export interface Genres {
+  totalPlays: number;
+  coveredPlays: number;
+  genres: {
+    genre: string;
+    plays: number;
+    durationMs: number;
+    topArtists: LightArtist[];
+  }[];
+}

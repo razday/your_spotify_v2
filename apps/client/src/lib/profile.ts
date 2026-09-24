@@ -1,3 +1,5 @@
+import { formatDecimal } from "@/lib/format";
+import { translate } from "@/lib/i18n";
 import { HeatmapCell, Overview } from "@/services/apis/insights";
 
 export interface ProfileTrait {
@@ -33,22 +35,26 @@ export function listeningProfile(
     traits.push({
       key: "night",
       emoji: "🦉",
-      title: "Night owl",
-      description: `${Math.round(night * 100)}% of your listening happens between 10 PM and 4 AM.`,
+      title: translate("trait.night.title"),
+      description: translate("trait.night.description", {
+        percent: Math.round(night * 100),
+      }),
     });
   } else if (morning >= 0.25) {
     traits.push({
       key: "morning",
       emoji: "🌅",
-      title: "Early bird",
-      description: `${Math.round(morning * 100)}% of your listening happens between 5 and 10 AM.`,
+      title: translate("trait.morning.title"),
+      description: translate("trait.morning.description", {
+        percent: Math.round(morning * 100),
+      }),
     });
   } else {
     traits.push({
       key: "day",
       emoji: "☀️",
-      title: "Daytime listener",
-      description: "Most of your music plays during the day.",
+      title: translate("trait.day.title"),
+      description: translate("trait.day.description"),
     });
   }
 
@@ -57,15 +63,17 @@ export function listeningProfile(
     traits.push({
       key: "weekend",
       emoji: "🎉",
-      title: "Weekend warrior",
-      description: `${Math.round(weekend * 100)}% of your listening happens on weekends.`,
+      title: translate("trait.weekend.title"),
+      description: translate("trait.weekend.description", {
+        percent: Math.round(weekend * 100),
+      }),
     });
   } else if (weekend <= 0.18) {
     traits.push({
       key: "weekday",
       emoji: "💼",
-      title: "Weekday soundtrack",
-      description: "Music is part of your week, less of your weekends.",
+      title: translate("trait.weekday.title"),
+      description: translate("trait.weekday.description"),
     });
   }
 
@@ -76,30 +84,36 @@ export function listeningProfile(
       traits.push({
         key: "explorer",
         emoji: "🧭",
-        title: "Explorer",
-        description: `${Math.round(newShare * 100)}% of the tracks you played were new to you.`,
+        title: translate("trait.explorer.title"),
+        description: translate("trait.explorer.description", {
+          percent: Math.round(newShare * 100),
+        }),
       });
     } else if (variety <= 0.3) {
       traits.push({
         key: "loyal",
         emoji: "🔁",
-        title: "On repeat",
-        description: `You play each track ${(1 / variety).toFixed(1)} times on average.`,
+        title: translate("trait.loyal.title"),
+        description: translate("trait.loyal.description", {
+          times: formatDecimal(1 / variety),
+        }),
       });
     } else {
       traits.push({
         key: "balanced",
         emoji: "⚖️",
-        title: "Balanced diet",
-        description: "A healthy mix of favorites and new songs.",
+        title: translate("trait.balanced.title"),
+        description: translate("trait.balanced.description"),
       });
     }
     if (overview.longestStreak.days >= 14) {
       traits.push({
         key: "streak",
         emoji: "🔥",
-        title: "Never skips a day",
-        description: `${overview.longestStreak.days} days in a row with music.`,
+        title: translate("trait.streak.title"),
+        description: translate("trait.streak.description", {
+          days: overview.longestStreak.days,
+        }),
       });
     }
   }

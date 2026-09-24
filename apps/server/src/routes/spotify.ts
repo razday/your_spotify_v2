@@ -382,10 +382,28 @@ router.get("/top/sessions", isLoggedOrGuest, async (req, res) => {
   res.status(200).send(result);
 });
 
+const playlistsSchema = z.object({ tracks: z.string().optional() });
+
+// With ?tracks=id1,id2, each playlist says how many of them it already has
 router.get("/playlists", logged, withHttpClient, async (req, res) => {
   const { client } = req as LoggedRequest & SpotifyRequest;
+  const { tracks } = validate(req.query, playlistsSchema);
 
-  res.status(200).send(await client.ownPlaylists());
+  const playlists = await client.ownPlaylists();
+  const ids = uniq((tracks ?? "").split(",").filter(Boolean)).slice(0, 100);
+  if (ids.length === 0) {
+    res.status(200).send(playlists);
+    return;
+  }
+  const withContains = [];
+  for (const playlist of playlists) {
+    const inPlaylist = await client.playlistTrackIds(playlist);
+    withContains.push({
+      ...playlist,
+      contains: ids.filter((id) => inPlaylist.has(id)).length,
+    });
+  }
+  res.status(200).send(withContains);
 });
 
 const createPlaylistBase = z.object({
@@ -501,7 +519,24 @@ router.post("/playlist/create", logged, withHttpClient, async (req, res) => {
     spotifyIds = uniq(body.songIds);
   }
   if (body.playlistId) {
-    await client.addToPlaylist(body.playlistId, spotifyIds);
+    // Never add a track twice to the same playlist
+    const playlist = (await client.ownPlaylists()).find(
+      (p) => p.id === body.playlistId,
+    );
+    const existing = playlist
+      ? await client.playlistTrackIds(playlist)
+      : new Set<string>();
+    const missing = spotifyIds.filter((id) => !existing.has(id));
+    if (missing.length > 0) {
+      await client.addToPlaylist(body.playlistId, missing);
+    }
+    res
+      .status(200)
+      .send({
+        added: missing.length,
+        skipped: spotifyIds.length - missing.length,
+      });
+    return;
   } else {
     await client.createPlaylist(playlistName, spotifyIds);
   }

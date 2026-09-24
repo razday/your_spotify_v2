@@ -4,6 +4,8 @@ export interface Playlist {
   id: string;
   name: string;
   images: SpotifyImage[] | null;
+  // How many of the asked tracks the playlist already has
+  contains?: number;
 }
 
 export interface PlaylistTopSongsContext {

@@ -23,11 +23,19 @@ export interface SpotifyMe {
   images?: { url: string; width: number | null; height: number | null }[];
 }
 
-interface SpotifyPlaylist {
+export interface SpotifyPlaylist {
   id: string;
   name: string;
   owner: { id: string };
+  // Changes on every edit of the playlist
+  snapshot_id: string;
 }
+
+// Track ids of the playlists, valid as long as their snapshot is the same
+const playlistTracks = new Map<
+  string,
+  { snapshot: string; ids: Set<string> }
+>();
 
 export interface SpotifyDevice {
   id: string | null;
@@ -291,6 +299,43 @@ export class SpotifyAPI {
     return playlists.filter(
       (playlist) => playlist.owner.id === account.spotifyId,
     );
+  }
+
+  public async playlistTrackIds(playlist: SpotifyPlaylist) {
+    const cached = playlistTracks.get(playlist.id);
+    if (cached && cached.snapshot === playlist.snapshot_id) {
+      return cached.ids;
+    }
+    const ids = new Set<string>();
+    // "item" since February 2026, "track" before
+    let next: string | null = `/playlists/${playlist.id}/items?limit=100`;
+    while (next) {
+      const client = await this.checkToken();
+      const res: {
+        data: {
+          next: string | null;
+          items: {
+            item?: { id: string } | null;
+            track?: { id: string } | null;
+          }[];
+        } | null;
+      } = await client.get<{
+        next: string | null;
+        items: {
+          item?: { id: string } | null;
+          track?: { id: string } | null;
+        }[];
+      }>(next, INTERACTIVE);
+      for (const entry of res.data?.items ?? []) {
+        const id = entry.item?.id ?? entry.track?.id;
+        if (id) {
+          ids.add(id);
+        }
+      }
+      next = res.data?.next ?? null;
+    }
+    playlistTracks.set(playlist.id, { snapshot: playlist.snapshot_id, ids });
+    return ids;
   }
 
   private async handleAddIdsToPlaylist(id: string, ids: string[]) {

@@ -77,6 +77,8 @@ export interface AccountPlayer {
 
 interface CacheEntry {
   at: number;
+  // Last time Spotify answered
+  stateAt: number;
   state: PlayerState | null;
   error: PlayerError | null;
 }
@@ -176,7 +178,7 @@ async function toState(raw: SpotifyPlayerState): Promise<PlayerState> {
 
 async function loadState(
   account: SpotifyAccount,
-): Promise<Omit<CacheEntry, "at">> {
+): Promise<Pick<CacheEntry, "state" | "error">> {
   if (!account.scopes.includes(PLAYER_SCOPE)) {
     return { state: null, error: "SCOPE_MISSING" };
   }
@@ -194,6 +196,7 @@ async function loadState(
     const raw = await SpotifyAPI.forAccount(id).player();
     entry = {
       at: Date.now(),
+      stateAt: Date.now(),
       state: raw ? await toState(raw) : null,
       error: null,
     };
@@ -209,7 +212,14 @@ async function loadState(
     } else {
       logger.warn(`Could not read the player of ${account.spotifyId}`, e);
     }
-    entry = { at: Date.now(), state: null, error };
+    // Keep showing the last known state through a short outage
+    const recent = cached && Date.now() - cached.stateAt < 60_000;
+    entry = {
+      at: Date.now(),
+      stateAt: cached?.stateAt ?? 0,
+      state: error !== "NOT_LINKED" && recent ? cached.state : null,
+      error,
+    };
   }
   cache.set(id, entry);
   return entry;

@@ -446,12 +446,21 @@ export const api = {
         full_items: Record<string, Artist>;
       }[]
     >("/spotify/top/hour-repartition/artists", { start, end }),
-  getPlaylists: () => get<Playlist[]>("/spotify/playlists"),
+  getPlaylists: (trackIds: string[] = []) =>
+    get<Playlist[]>(
+      "/spotify/playlists",
+      trackIds.length > 0 ? { tracks: trackIds.join(",") } : {},
+    ),
   addToPlaylist: (
     id: string | undefined,
     name: string | undefined,
     context: PlaylistContext,
-  ) => post("/spotify/playlist/create", { playlistId: id, name, ...context }),
+  ) =>
+    post<{ added: number; skipped: number } | "">("/spotify/playlist/create", {
+      playlistId: id,
+      name,
+      ...context,
+    }),
   getTrackDetails: (ids: string[]) => get<Track[]>(`/track/${ids.join(",")}`),
   getTrackStats: (id: string) =>
     get<TrackStatsResponse | { code: "NEVER_LISTENED" }>(`/track/${id}/stats`),

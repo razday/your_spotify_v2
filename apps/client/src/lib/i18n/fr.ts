@@ -121,7 +121,7 @@ export const fr: Messages = {
 
   "playlist.title": "Ajouter à une playlist",
   "playlist.description":
-    "Crée une nouvelle playlist ou choisis une des tiennes.",
+    "Choisis une ou plusieurs de tes playlists, ou crées-en une.",
   "playlist.newName": "Nom de la nouvelle playlist",
   "playlist.create": "Créer",
   "playlist.loading": "Chargement de tes playlists",
@@ -713,4 +713,13 @@ export const fr: Messages = {
     "Relie ton compte Spotify pour débloquer le player et les nouvelles fonctionnalités.",
   "footer.update": "Mise à jour disponible",
   "footer.versions": "Serveur v{server}, application web v{client}",
+  "playlist.checking": "Vérification de tes playlists",
+  "playlist.alreadyIn": "Déjà dedans",
+  "playlist.partlyIn": "{count}/{total} déjà dedans",
+  "playlist.alreadyAll": "Déjà dans ces playlists",
+  "playlist.pick": "Choisis des playlists",
+  "playlist.addTo_one": "Ajouter à {count} playlist",
+  "playlist.addTo_other": "Ajouter à {count} playlists",
+  "playlist.addedTo_one": "Ajouté à {count} playlist",
+  "playlist.addedTo_other": "Ajouté à {count} playlists",
 };

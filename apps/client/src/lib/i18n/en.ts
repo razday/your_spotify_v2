@@ -127,7 +127,8 @@ export const en = {
 
   // Playlists
   "playlist.title": "Add to a playlist",
-  "playlist.description": "Create a new playlist or pick one of yours.",
+  "playlist.description":
+    "Pick one or more of your playlists, or create a new one.",
   "playlist.newName": "New playlist name",
   "playlist.create": "Create",
   "playlist.loading": "Loading your playlists",
@@ -725,6 +726,15 @@ export const en = {
     "Link your Spotify account again to unlock the player and the new features.",
   "footer.update": "Update available",
   "footer.versions": "Server v{server}, web app v{client}",
+  "playlist.checking": "Checking your playlists",
+  "playlist.alreadyIn": "Already in",
+  "playlist.partlyIn": "{count}/{total} already in",
+  "playlist.alreadyAll": "Already in these playlists",
+  "playlist.pick": "Pick playlists",
+  "playlist.addTo_one": "Add to {count} playlist",
+  "playlist.addTo_other": "Add to {count} playlists",
+  "playlist.addedTo_one": "Added to {count} playlist",
+  "playlist.addedTo_other": "Added to {count} playlists",
 } as const;
 
 export type Messages = { [K in keyof typeof en]: string };

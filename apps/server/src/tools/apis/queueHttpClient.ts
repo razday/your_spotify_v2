@@ -95,6 +95,20 @@ function createQueueState(): QueueState {
   };
 }
 
+// A read that failed on the network (connection timeout, reset...) is tried
+// once more, commands are not repeated
+async function fetchWithRetry(url: URL, payload: RequestInit) {
+  try {
+    return await fetch(url, payload);
+  } catch (e) {
+    if (payload.method?.toLowerCase() !== "get") {
+      throw e;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return fetch(url, payload);
+  }
+}
+
 export class QueuedHttpClientFactory {
   private readonly queueState: QueueState = createQueueState();
 
@@ -223,7 +237,7 @@ export class QueuedHttpClient {
       credentials: "include",
     };
 
-    const response = await fetch(url, payload);
+    const response = await fetchWithRetry(url, payload);
 
     if (!response.ok) {
       const text = await response.text();
@@ -261,9 +275,17 @@ export class QueuedHttpClient {
       return;
     }
 
-    // Commands like "play" answer 204 without any body
+    // Commands like "play" answer 204 without any body, and some player
+    // commands answer 200 with a plain text id instead of JSON
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    let data: any = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+    }
     queueItem.resolve({
       data,
       status: response.status,
